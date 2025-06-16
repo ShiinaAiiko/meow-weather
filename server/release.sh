@@ -1,5 +1,5 @@
 #! /bin/bash
-name="meow-weahter-server"
+name="meow-weather-server"
 runName="$name-run"
 port=23211
 branch="main"
@@ -82,7 +82,7 @@ run() {
   stop
   docker run \
     -v $DIR/$configFilePath:/config.json \
-    -v $DIR/meow-weahter:/meow-weahter \
+    -v $DIR/meow-weather:/meow-weather \
     -v $DIR/services:/services \
     -v $DIR/static:/static \
     --name=$runName \
@@ -95,7 +95,7 @@ unzip() {
   rm -rf ./services/i18n
   mkdir -p ./services/i18n
   tar -zxvf ./build.tgz -C ./
-  chmod -R 700 meow-weahter
+  chmod -R 700 meow-weather
 
   rm -rf build.tgz
 }

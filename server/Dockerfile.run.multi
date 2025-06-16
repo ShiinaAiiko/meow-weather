@@ -2,9 +2,9 @@ FROM alpine:3.10
 
 WORKDIR /
 
-COPY meow-weahter \
+COPY meow-weather \
   /
 
 EXPOSE 23211
 
-CMD ["./meow-weahter","--config","config.json"]
+CMD ["./meow-weather","--config","config.json"]

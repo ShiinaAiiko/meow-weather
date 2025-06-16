@@ -40,14 +40,14 @@ COPY . .
 RUN \
   chmod -R 700 release.sh && \
   bash ./release.sh protos && \
-  go build -o meow-weahter main.go 
+  go build -o meow-weather main.go 
 
 FROM alpine:3.10
 
 WORKDIR /build
 
 COPY --from=BUILD_IMAGE \
-  /app/meow-weahter \
+  /app/meow-weather \
   /build
 COPY --from=BUILD_IMAGE \
   /app/services/i18n/ \
@@ -59,4 +59,4 @@ RUN \
 
 EXPOSE 23211
 
-CMD ["/build/meow-weahter","--config","config.json"]
+CMD ["/build/meow-weather","--config","config.json"]
