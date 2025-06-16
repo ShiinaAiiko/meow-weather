@@ -14,35 +14,6 @@ import { t } from './i18n/i18n'
 export const getRegExp = (type: 'email') => {
   return /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
 }
-export const emojiToText = (message: string) => {
-  return message.replace(
-    /<img [^>]*class=['"]([^'"]+)[^>]*src=['"]([^'"]+)[^>]*data-name=['"]([^'"]+)[^>]*>/g,
-    (el: string, className: string, src: string, name: string) => {
-      if (className === 'mwc-emoji') {
-        return '[' + name + ']'
-      }
-      console.log(el)
-      // 暂时不允许这种方式发图片。
-      return ''
-    }
-  )
-}
-
-export const emojiToImg = (message: string) => {
-  return message.replace(/\[(.+?)\]/g, (el: string, name: string) => {
-    // console.log(el, name)
-    const { emoji } = store.getState()
-    let obj = emoji.emojiListObj[name]
-    if (obj) {
-      return `<img class="mwc-emoji" 
-        alt="${obj.name}" 
-        title="${obj.name}"
-        src="${obj.src}" 
-        data-name="${obj.name}">`
-    }
-    return el
-  })
-}
 export const isInPwa = () => {
   // return true
   return (
@@ -283,8 +254,6 @@ export const formatDurationI18n = (
 
   return str.trim()
 }
-
-
 
 // 单位米
 

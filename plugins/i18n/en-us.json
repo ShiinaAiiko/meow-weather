@@ -136,6 +136,8 @@
     "minuteTime": "m ",
     "secondTime": "s ",
 
-    "searching": "Searching"
+    "searching": "Searching",
+
+    "syncing": "Syncing"
   }
 }

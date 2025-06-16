@@ -139,6 +139,8 @@
     "loadComponent": "正在加载 {{name}} 组件",
 
     "export": "导出",
-    "import": "导入"
+    "import": "导入",
+
+    "syncing": "同步中"
   }
 }

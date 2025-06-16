@@ -234,7 +234,7 @@
         object-fit: cover;
         filter: blur(0px) brightness(0.8);
         border-radius: 20px;
-        transition: filter 0.5s;
+        // transition: filter 0.5s;
         &.Mobile {
           width: calc(var(--wp-w) + 30px);
           height: calc(var(--wp-h) + 30px);

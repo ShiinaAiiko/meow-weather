@@ -28,7 +28,7 @@
     }
   ],
   "orientation": "portrait-primary",
-  "start_url": "/weather",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "theme_color": "#ffffff",

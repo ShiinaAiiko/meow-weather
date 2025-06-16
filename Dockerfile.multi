@@ -15,7 +15,6 @@ COPY . .
 
 RUN \
   yarn sakiui && \
-  yarn build-webworker && \
   yarn export && \
   ./release.sh generateSiteMap
 

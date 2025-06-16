@@ -3786,7 +3786,7 @@ export const weatherMethods = {
           layoutSlice.actions.setLayoutHeaderLoading({
             loading: true,
             text: t('syncing', {
-              ns: 'countdownDaysPage',
+              ns: 'prompt',
             }),
           })
         )
@@ -3945,7 +3945,7 @@ export const weatherMethods = {
           layoutSlice.actions.setLayoutHeaderLoading({
             loading: true,
             text: t('syncing', {
-              ns: 'countdownDaysPage',
+              ns: 'prompt',
             }),
           })
         )
