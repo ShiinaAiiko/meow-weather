@@ -17,20 +17,39 @@
 
 # misc
 .DS_Store
-*.pem
+# .env*
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
-.env*.local
-.env
+config*.json
+package-lock.json
 
-# vercel
-.vercel
+/protos/v1
+/protos/**/*.js
+/protos/**/*.d.ts
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+ssh.sh
+
+.npmrc
+.yarnrc
+build.tgz
+/components/saki-ui-react
+
+generateSiteMap.js
+
+/public/sw.js
+/public/workbox*.js
+/public/worker*.js
+/public/sw.js.map
+/public/workbox*.js.map
+/public/worker*.js.map
+
+/public/webworker-bundle.js
+
+/webworker/dist
+/tmp
+
+public/a.html

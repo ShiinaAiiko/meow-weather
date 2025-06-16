@@ -1,0 +1,144 @@
+{
+  "common": {
+    "appTitle": "NyaNya 工具箱",
+    "appSubtitle": "一个包含多个实用小工具的工具箱，更多的工具不定期增加",
+    "logoTitle": "帐号",
+    "copy": "复制",
+    "aiikoBlog": "爱喵博客",
+
+    "image": "照片",
+    "video": "视频",
+    "file": "文件",
+
+    "404": "该页面不存在",
+
+    "developing": "正在开发",
+
+    "emoji": "表情",
+    "customStickers": "自定义表情"
+  },
+  "appearance": {
+    "light": "浅色模式",
+    "dark": "暗黑模式",
+    "black": "黑色模式",
+    "system": "随系统外表"
+  },
+  "languages": {
+    "en-US": "英文",
+    "zh-CN": "中文(简体)",
+    "zh-TW": "中文(繁体)",
+    "system": "使用设备语言"
+  },
+  "weatherPage": {
+    "pageTitle": "喵天气",
+    "subtitle": "喵天气提供精准的实时天气预报服务，包括温度、湿度、气压、降水量、风速、空气质量等数据，支持24小时预报和15天天气趋势预测，为您的行程与生活提供可靠参考。",
+
+    "enterCityName": "搜索城市名",
+    "citiesList": "城市列表",
+
+    "deleteThisCity": "您确定要将此城市从列表中删除吗？",
+    "attribution": "天气与空气质量数据来自 Open-Meteo，地理数据来自 OpenStreetMap（© OpenStreetMap contributors）。",
+
+    "curve": "曲线",
+    "list": "列表",
+
+    "unitModalPageTitle": "天气单位",
+    "unit": "单位",
+    "temperatureUnit": "温度单位",
+    "precipitationUnit": "降雨量单位",
+    "windSpeedUnit": "风速单位",
+    "pressureUnit": "气压单位",
+    "visibilityUnit": "能见度单位",
+    "timeFormatUnit": "时间格式化",
+    "24-hour": "24小时制",
+    "12-hour": "12小时制"
+  },
+  "prompt": {
+    "next": "下一步",
+    "back": "返回",
+    "delete": "删除",
+    "cancel": "取消",
+    "confirm": "确认",
+    "copySuccessfully": "复制成功！",
+    "windowsPathDoesNotExist": "Windows 路径不存在。",
+    "posixPathDoesNotExist": "Posix 路径不存在。",
+    "download": "下载",
+    "pleaseUploadYourAvatar": "请上传你的头像",
+    "ipEmptyTip": "IP或者域名不能为空",
+    "querySuccessfully": "查询成功！",
+    "queryFailed": "查询失败，请重新输入IP或域名",
+    "connectMapFailed": "无法连接地图，请检查网络。",
+
+    "pin": "收藏",
+    "addSticker": "添加到自定义表情",
+    "select": "选择",
+    "reply": "回复",
+    "forward": "转发",
+    "edit": "编辑",
+
+    "networkSpeed": "传输速率 {{speed}}",
+
+    "update": "更新",
+    "create": "创建",
+    "call": "立即拨打",
+
+    "login": "登录",
+    "logout": "登出",
+    "logoutContent": "您确定要退出此账户吗？",
+
+    "avatarAddedSuccessfully": "头像添加成功！",
+    "deleteSuccessfully": "删除成功！",
+    "createSuccessfully": "创建成功！",
+    "updateSuccessfully": "更新成功！",
+    "downloadSuccessfully": "下载成功！",
+    "logoutSuccessfully": "登出成功!",
+    "sendSuccessfully": "发送成功!",
+    "copyWechat": "已复制微信号!",
+    "copyWechatSuccessfully": "已复制微信号! 在微信App里搜索车主微信号，即可添加好友",
+
+    "cannotBeEmpty": "不能为空",
+    "phoneRuleErr": "手机号错误，请重新输入",
+
+    "profile": "个人资料",
+
+    "send": "发送",
+    "copy": "复制",
+
+    "clear": "清除",
+    "noDateSelectedYet": "尚未选择日期",
+    "noCategorySelectedYet": "尚未选择分类",
+
+    "uploadedSuccessfully": "上传成功!",
+    "failedToConnectToApp": "无法连接到{{appName}}!",
+    "backup": "备份",
+    "backupContent": "您确定要备份{{appName}}的数据吗？",
+    "restore": "恢复",
+    "replace": "替换",
+    "replaceContent": "您确定要替换原来的内容吗？",
+
+    "rename": "重命名",
+
+    "deleteEmoji": "删除表情",
+    "deleteEmojiContent": "您确定要删除这个表情符号吗?",
+
+    "disconnect": "断开连接",
+    "disconnectContent": "你确定要与其他设备断开连接吗？",
+
+    "start": "开始",
+    "output": "输出",
+    "outputParameters": "输出参数",
+    "resolution": "分辨率",
+    "configure": "配置",
+
+    "hourTime": "时",
+    "minuteTime": "分",
+    "secondTime": "秒",
+
+    "searching": "搜索中",
+
+    "loadComponent": "正在加载 {{name}} 组件",
+
+    "export": "导出",
+    "import": "导入"
+  }
+}

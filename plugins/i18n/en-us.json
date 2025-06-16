@@ -1,0 +1,141 @@
+{
+  "common": {
+    "appTitle": "NyaNya Toolbox",
+    "appSubtitle": "NyaNya toolbox, more tools will be added gradually.",
+    "logoTitle": "Toolbox",
+    "copy": "Copy",
+    "aiikoBlog": "Aiiko Blog",
+
+    "photo": "Photo",
+    "video": "Video",
+    "file": "File",
+
+    "404": "The page does not exist",
+
+    "developing": "Developing",
+
+    "emoji": "Emoji",
+    "customStickers": "Custom Stickers "
+  },
+  "appearance": {
+    "light": "Light",
+    "dark": "Dark",
+    "black": "Black",
+    "system": "Use device appearance"
+  },
+  "languages": {
+    "en-US": "English",
+    "zh-CN": "Chinese(Simplified)",
+    "zh-TW": "Chinese(Traditional)",
+    "system": "Use device language"
+  },
+  "weatherPage": {
+    "pageTitle": "Meow Weather",
+    "subtitle": "Meow Weather provides accurate real-time weather forecasts, including temperature, humidity, air pressure, precipitation, wind speed, air quality and more. With 24-hour forecasts and 15-day weather trends, we offer reliable references for your travel and daily life.",
+
+    "enterCityName": "Search city name",
+    "citiesList": "City list",
+
+    "deleteThisCity": "Are you sure you want to delete this city from the list?",
+    "attribution": "Weather and air quality data from Open-Meteo, geographic data from OpenStreetMap (© OpenStreetMap contributors).",
+
+    "curve": "curve",
+    "list": "list",
+
+    "unitModalPageTitle": "weather unit",
+    "unit": "unit",
+    "temperatureUnit": "temperature unit",
+    "precipitationUnit": "precipitation unit",
+    "windSpeedUnit": "wind speed unit",
+    "pressureUnit": "pressure unit",
+    "visibilityUnit": "visibility unit",
+    "timeFormatUnit": "time format",
+    "24-hour": "24-hour system",
+    "12-hour": "12-hour system"
+  },
+  "prompt": {
+    "next": "Next",
+    "back": "Back",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "copySuccessfully": "Copy successfully!",
+    "windowsPathDoesNotExist": "Windows path does not exist.",
+    "posixPathDoesNotExist": "Posix path does not exist.",
+    "download": "Download",
+    "pleaseUploadYourAvatar": "Please upload your avatar.",
+    "ipEmptyTip": "IP or domain name cannot be empty",
+    "querySuccessfully": "Query successful!",
+    "queryFailed": "Query failed, please retype the IP or domain name",
+    "connectMapFailed": "Unable to connect to the map, please check the network.",
+
+    "pin": "Pin",
+    "addSticker": "Add to Custom Stickers",
+    "select": "Select",
+    "reply": "Reply",
+    "forward": "Forward",
+    "edit": "Edit",
+
+    "networkSpeed": "Network speed {{speed}}",
+
+    "update": "Update",
+    "create": "Create",
+    "call": "Call",
+
+    "login": "Login",
+    "logout": "Logout",
+    "logoutContent": "Are you sure you want to log out of this account?",
+
+    "avatarAddedSuccessfully": "Avatar added successfully!",
+    "deleteSuccessfully": "Deleted successfully!",
+    "createSuccessfully": "Created successfully!",
+    "updateSuccessfully": "updated successfully!",
+    "downloadSuccessfully": "Downloaded successfully!",
+    "logoutSuccessfully": "Logout successfully!",
+    "sendSuccessfully": "Send successfully!",
+    "copyWechat": "Wechat ID has been copied!",
+    "copyWechatSuccessfully": "The Wechat ID has been copied! Search the car owner's WeChat ID in the WeChat App to add friends",
+
+    "cannotBeEmpty": "Can not be empty",
+    "phoneRuleErr": "The phone number is wrong, please re-type it.",
+
+    "profile": "Profile",
+
+    "send": "Send",
+    "copy": "Copy",
+
+    "clear": "Clear",
+    "noDateSelectedYet": "No date has been selected yet",
+    "noCategorySelectedYet": "No category has been selected yet",
+
+    "uploadedSuccessfully": "Uploaded successfully!",
+    "failedToConnectToApp": "Failed to connect to {{appName}}!",
+    "backup": "Backup",
+    "backupContent": "Are you sure you want to back up {{appName}}'s data?",
+    "restore": "Restore",
+    "replace": "Replace",
+    "replaceContent": "Are you sure you want to replace the original content?",
+
+    "rename": "Rename",
+
+    "nextStepAfterLogin": "You need to log in to continue to the next step",
+
+    "deleteEmoji": "Delete Emoji",
+    "deleteEmojiContent": "Are you sure you want to delete this emoji?",
+
+    "disconnect": "Disconnect",
+    "disconnectContent": "Are you sure you want to disconnect from other devices?",
+
+    "start": "Start",
+    "output": "Output",
+    "outputParameters": "Output Parameters",
+    "resolution": "Resolution",
+    "configure": "Configure",
+
+    "hourTime": "h ",
+    "minuteTime": "m ",
+    "secondTime": "s ",
+
+    "searching": "Searching"
+  }
+}

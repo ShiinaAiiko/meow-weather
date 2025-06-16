@@ -1,0 +1,41 @@
+FROM node:18.19.1 as BUILD_IMAGE
+
+WORKDIR /app
+
+ENV CLIENT_ENV=production
+# ENV NODE_ENV=production
+
+COPY .yarnrc .npmrc /root/
+COPY package.json yarn.lock ./
+
+RUN \
+  yarn install --frozen-lockfile --registry https://registry.npm.aiiko.club
+
+COPY . .
+
+RUN \
+  yarn sakiui && \
+  yarn build-webworker && \
+  yarn export && \
+  ./release.sh generateSiteMap
+
+FROM node:18.19.1-alpine3.18
+
+ENV CLIENT_ENV=production
+
+WORKDIR /
+
+COPY --from=BUILD_IMAGE \
+  /app/out \
+  /dist
+
+RUN \ 
+  # yarn global add spa-http-server --registry https://registry.npmmirror.com/ && \
+  tar cvzf /build.tgz  -C /dist .
+
+EXPOSE 23210
+
+CMD ["pwd"]
+
+# CMD ["http-server","./dist","--cors","--silent","-p","23210"]
+

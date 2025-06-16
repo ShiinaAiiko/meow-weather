@@ -1,0 +1,31 @@
+.tool-box-layout {
+  .tb-main {
+    width: 100%;
+    .tb-main-wrap {
+      width: calc(100% - 20px);
+      min-width: 200px;
+      max-width: 700px;
+      margin: 10px auto;
+      // overflow: hidden;
+    }
+  }
+}
+
+.context-menu-item {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0 6px;
+  font-size: 14px;
+  .icon {
+    fill: #666;
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+  }
+  &.disabletap {
+    .icon {
+      fill: #aaa;
+    }
+  }
+}
