@@ -29,7 +29,15 @@ export interface CityInfo {
 
 export const Geo = () => {
   return {
-    regeo: async ({ lat, lng }: { lat: number; lng: number }) => {
+    regeo: async ({
+      lat,
+      lng,
+      lang,
+    }: {
+      lat: number
+      lng: number
+      lang?: string
+    }) => {
       const { config } = store.getState()
 
       let newCi: CityInfo = {
@@ -48,7 +56,9 @@ export const Geo = () => {
         const res: any = await R.request({
           method: 'GET',
           url: `
-          https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1&zoom=12&accept-language=${config.lang}
+          https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1&zoom=12&accept-language=${
+            lang || config.lang
+          }
           `,
         })
         console.log('GetCity regeo osm', res.data)
@@ -105,8 +115,8 @@ export const Geo = () => {
           // `https://restapi.amap.com/v3/geocode/regeo?output=json&location=104.978701,24.900169&key=fb7fdf3663af7a532b8bdcd1fc3e6776&radius=100&extensions=all`
           // `https://restapi.amap.com/v3/geocode/regeo?output=json&location=${lon},${lat}&key=fb7fdf3663af7a532b8bdcd1fc3e6776&radius=100&extensions=all`
           // `https://nominatim.aiiko.club/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=${zoom}&addressdetails=1&accept-language=zh-CN`,
-          server.url +
-          `/api/v1/geocode/regeo?latitude=${lat}&longitude=${lng}&platform=Amap`,
+
+          `https://tools.aiiko.club/api/v1/geocode/regeo?latitude=${lat}&longitude=${lng}&platform=Amap`,
         // `https://tools.aiiko.club/api/v1/geocode/regeo?latitude=${lat}&longitude=${lon}&platform=Amap`
       })
 
@@ -134,7 +144,7 @@ export const Geo = () => {
 
       return newCi
     },
-    search: async ({ keywords }: { keywords: string }) => {
+    search: async ({ keywords, lang }: { keywords: string; lang?: string }) => {
       const { config } = store.getState()
 
       const connectionOpenStreetMap = await networkConnectionStatusDetection(
@@ -147,7 +157,9 @@ export const Geo = () => {
       if (connectionOpenStreetMap) {
         const res = await R.request({
           method: 'GET',
-          url: `https://nominatim.openstreetmap.org/search?q=${keywords}&format=jsonv2&addressdetails=1&accept-language=${config.lang}`,
+          url: `https://nominatim.openstreetmap.org/search?q=${keywords}&format=jsonv2&addressdetails=1&accept-language=${
+            lang || config.lang
+          }`,
         })
         if (res.data) {
           return res.data
@@ -161,7 +173,9 @@ export const Geo = () => {
           // `https://restapi.amap.com/v3/geocode/regeo?output=json&location=${lon},${lat}&key=fb7fdf3663af7a532b8bdcd1fc3e6776&radius=100&extensions=all`
           // `https://nominatim.aiiko.club/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=${zoom}&addressdetails=1&accept-language=zh-CN`,
           // server.url +
-          `https://nominatim.aiiko.club/search?q=${keywords}&format=jsonv2&addressdetails=1&accept-language=${config.lang}`,
+          `https://nominatim.aiiko.club/search?q=${keywords}&format=jsonv2&addressdetails=1&accept-language=${
+            lang || config.lang
+          }`,
         // `https://tools.aiiko.club/api/v1/geocode/regeo?latitude=${lat}&longitude=${lon}&platform=Amap`
       })
       return res.data

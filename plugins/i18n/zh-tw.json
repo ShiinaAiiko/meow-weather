@@ -51,7 +51,13 @@
     "visibilityUnit": "能見度單位",
     "timeFormatUnit": "時間格式化",
     "24-hour": "24小時制",
-    "12-hour": "12小時制"
+    "12-hour": "12小時制",
+
+    "rain": "雨",
+    "snow": "雪",
+    "sleet": "雨夾雪",
+    "startRainSnowTip": "{{minutesFromNow}}分鐘後將開始下{{precipitationType}}。",
+    "stopRainSnowTip": "{{minutesFromNow}}分鐘後{{precipitationType}}將停止。"
   },
   "prompt": {
     "next": "繼續",
@@ -136,6 +142,10 @@
 
     "searching": "搜尋中",
 
-    "syncing": "同步中"
+    "syncing": "同步中",
+
+    "refreshWeather": "取得最新天氣",
+    "refreshWeatherContent": "是否要立即取得最新天氣實況呢？",
+    "refreshTimesTooManny": "您在{{time}}之前才剛刷新過，請過會再試哦"
   }
 }

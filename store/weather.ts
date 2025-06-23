@@ -13,7 +13,7 @@ import { httpApi } from '../plugins/http/api'
 import { saass } from './config'
 import { random, showSnackbar } from '../plugins/methods'
 import { storage } from './storage'
-import { server } from '../config'
+import appConfig from '../config'
 
 import {
   convertTemperature,
@@ -162,6 +162,36 @@ export const defaultWeatherInfo = {
     precipitation_probability: '%',
     wind_gusts_10m: 'm/s',
   },
+  minutely_15: {
+    time: [] as string[],
+    temperature_2m: [] as number[],
+    precipitation: [] as number[],
+    rain: [] as number[],
+    snowfall: [] as number[],
+    snowfall_height: [] as number[],
+    weather_code: [] as number[],
+    wind_speed_10m: [] as number[],
+    wind_gusts_10m: [] as number[],
+    relative_humidity_2m: [] as number[],
+    dew_point_2m: [] as number[],
+    apparent_temperature: [] as number[],
+    lightning_potential: [] as number[],
+  },
+  minutely_15_units: {
+    time: 'iso8601',
+    temperature_2m: '°C',
+    precipitation: 'mm',
+    rain: 'mm',
+    snowfall: 'cm',
+    snowfall_height: 'm',
+    weather_code: 'wmo code',
+    wind_speed_10m: 'km/h',
+    wind_gusts_10m: 'km/h',
+    relative_humidity_2m: '%',
+    dew_point_2m: '°C',
+    apparent_temperature: '°C',
+    lightning_potential: 'J/kg',
+  },
   daily: {
     temperature_2m_max: [] as number[],
     temperature_2m_min: [] as number[],
@@ -182,6 +212,15 @@ export const defaultWeatherInfo = {
     sunset: [] as string[],
     uv_index_clear_sky_max: [] as number[],
     uv_index_max: [] as number[],
+
+    dayTimeWeatherCode: [] as {
+      wcode: number
+      temp: number
+    }[],
+    nightTimeWeatherCode: [] as {
+      wcode: number
+      temp: number
+    }[],
   },
   dailyUnits: {
     precipitation_hours: 'h',
@@ -342,6 +381,19 @@ export const defaultWeatherInfo = {
     } as {
       sources: string[]
       license: string[]
+    },
+  },
+  qweather_5m: {
+    updateTime: '',
+    summary: '',
+    minutely: [] as {
+      fxTime: string
+      precip: string
+      type: 'rain' | 'snow '
+    }[],
+    refer: {
+      sources: [''],
+      license: [''],
     },
   },
 }
@@ -569,6 +621,179 @@ function calculateSolarNoon(observer: Observer, startOfDay: Date): Date | null {
 //   }
 // }
 // init()
+
+export function generateWeatherChangeText(weatherInfo: {
+  minutely_15: {
+    time: string[]
+    weather_code: number[]
+    precipitation: number[]
+    rain: number[]
+    snowfall: number[]
+  }
+}): string {
+  // console.log('generateWeatherChangeText', weatherInfo.minutely_15)
+  const { minutely_15 } = weatherInfo
+  const { time, precipitation, rain, snowfall, weather_code } = minutely_15
+  let output: string[] = []
+  let isPrecipitating = false
+  let precipitationType = ''
+
+  // WMO 天气代码中与降雨相关的代码
+  const rainCodes = [51, 53, 55, 61, 63, 65, 66, 67, 80, 81, 82] // 小雨、中雨、大雨、冻雨等
+  const snowCodes = [71, 73, 75, 77, 85, 86] // 雪、雪暴等
+
+  for (let i = 0; i < time.length; i++) {
+    const currentTime = new Date(time[i])
+    const minutesFromNow = Math.round(
+      (currentTime.getTime() - Date.now()) / 1000 / 60
+    )
+
+    // 检查是否有降水
+    const hasPrecipitation = precipitation[i] > 0
+    const hasRain = rain[i] > 0
+    const hasSnow = snowfall[i] > 0
+
+    // 确定降水类型
+    if (hasPrecipitation) {
+      if (hasRain && !hasSnow) {
+        precipitationType = t('rain', {
+          ns: 'weatherPage',
+        })
+      } else if (hasSnow && !hasRain) {
+        precipitationType = t('snow', {
+          ns: 'weatherPage',
+        })
+      } else if (hasRain && hasSnow) {
+        precipitationType = t('sleet', {
+          ns: 'weatherPage',
+        })
+      } else {
+        // precipitation 有值，但 rain 和 snowfall 均为 0，使用 weather_code 判断
+        const code = weather_code[i]
+        if (rainCodes.includes(code)) {
+          precipitationType = t('rain', {
+            ns: 'weatherPage',
+          })
+        } else if (snowCodes.includes(code)) {
+          precipitationType = t('snow', {
+            ns: 'weatherPage',
+          })
+        } else {
+          // 默认假设为雨（基于你的观察）
+          precipitationType = t('rain', {
+            ns: 'weatherPage',
+          })
+        }
+      }
+    }
+
+    // 检测降水开始
+    if (!isPrecipitating && hasPrecipitation) {
+      minutesFromNow >= 0 &&
+        output.push(
+          t('startRainSnowTip', {
+            ns: 'weatherPage',
+            minutesFromNow,
+            precipitationType,
+          })
+        )
+      isPrecipitating = true
+    }
+    // 检测降水停止
+    else if (isPrecipitating && !hasPrecipitation) {
+      minutesFromNow >= 0 &&
+        output.push(
+          t('stopRainSnowTip', {
+            ns: 'weatherPage',
+            minutesFromNow,
+            precipitationType,
+          })
+        )
+      isPrecipitating = false
+    }
+
+    if (output.length >= 2) {
+      continue
+    }
+  }
+
+  // 如果没有降水事件
+  if (!output.length) {
+    // output = '未来一段时间内没有降雨或降雪。'
+    return ''
+  }
+
+  return output.join(' ')
+}
+
+export function generateWeatherChangeTextQw5m(weatherInfo: {
+  qw5m: (typeof defaultWeatherInfo)['qweather_5m']
+}): string {
+  const { minutely } = weatherInfo.qw5m
+  let output: string[] = []
+  let isPrecipitating = false
+  let precipitationType = ''
+
+  for (let i = 0; i < minutely.length; i++) {
+    const currentTime = new Date(minutely[i].fxTime)
+    const minutesFromNow = Math.round(
+      (currentTime.getTime() - Date.now()) / 1000 / 60
+    )
+
+    // 检查是否有降水
+    const hasPrecipitation = parseFloat(minutely[i].precip) > 0
+    const currentType = minutely[i].type
+
+    // 确定降水类型
+    if (hasPrecipitation) {
+      precipitationType =
+        currentType === 'rain'
+          ? t('rain', {
+              ns: 'weatherPage',
+            })
+          : t('snow', {
+              ns: 'weatherPage',
+            })
+    }
+
+    // 检测降水开始
+    if (!isPrecipitating && hasPrecipitation) {
+      minutesFromNow >= 0 &&
+        output.push(
+          t('startRainSnowTip', {
+            ns: 'weatherPage',
+            minutesFromNow,
+            precipitationType,
+          })
+        )
+      isPrecipitating = true
+    }
+    // 检测降水停止
+    else if (isPrecipitating && !hasPrecipitation) {
+      minutesFromNow >= 0 &&
+        output.push(
+          t('stopRainSnowTip', {
+            ns: 'weatherPage',
+            minutesFromNow,
+            precipitationType,
+          })
+        )
+      isPrecipitating = false
+    }
+
+    // 限制输出最多两条信息
+    if (output.length >= 2) {
+      break
+    }
+  }
+
+  // 如果没有降水事件
+  if (!output.length) {
+    return ''
+  }
+
+  return output.join(' ')
+}
 
 export function getVisibilityAlert(visibilityKm: number) {
   let level, description, color
@@ -3319,175 +3544,229 @@ export function calculateTwilightTimes(
   return result
 }
 
-export function getMaxMinTempWeatherCodes(data: typeof defaultWeatherInfo): {
-  maxTempWeatherCodes: number[]
-  minTempWeatherCodes: number[]
+// let wcodes: [
+//   {
+//     date: string
+//     wcode: number
+//     temp: number
+//   }
+// ] = []
+
+// 定义天气数据类型
+interface WeatherHourlyData {
+  date: string // 格式如 "2020-03-23 08:00"
+  wcode: number // Open-Meteo WMO weathercode
+  temp: number // 温度（摄氏度）
+}
+
+// 函数：根据输入日期获取白天和晚上的代表性天气
+export function getDailyWeatherSummary(
+  inputDate: string,
+  wcodes: WeatherHourlyData[]
+): {
+  day: { wcode: number; temp: number }
+  night: { wcode: number; temp: number }
 } {
-  const maxTempWeatherCodes: number[] = []
-  const minTempWeatherCodes: number[] = []
-  const hoursPerDay = 24
-  const dayStartHour = 6 // 白天开始时间（06:00）
-  const dayEndHour = 18 // 白天结束时间（18:00）
-
-  // 遍历每天的日期
-  data.daily.time.forEach((day, dayIndex) => {
-    // 获取当天的每小时数据
-    const startIndex = dayIndex * hoursPerDay
-    const endIndex = startIndex + hoursPerDay
-    const dailyHourlyTemps = data.hourly.temperature_2m.slice(
-      startIndex,
-      endIndex
-    )
-    const dailyHourlyCodes = data.hourly.weathercode.slice(startIndex, endIndex)
-    const dailyHourlyTimes = data.hourly.time.slice(startIndex, endIndex)
-
-    // 获取当天的最高和最低温度
-    const maxTemp = data.daily.temperature_2m_max[dayIndex]
-    const minTemp = data.daily.temperature_2m_min[dayIndex]
-
-    // 找出最高温度的所有小时索引
-    const maxTempIndices = dailyHourlyTemps
-      .map((temp, index) => (temp === maxTemp ? index : -1))
-      .filter((index) => index !== -1)
-
-    // 找出最低温度的所有小时索引
-    const minTempIndices = dailyHourlyTemps
-      .map((temp, index) => (temp === minTemp ? index : -1))
-      .filter((index) => index !== -1)
-
-    // 获取白天时段（06:00-18:00）的索引
-    const dayIndices = dailyHourlyTimes
-      .map((time, index) => {
-        const hour = new Date(time).getHours()
-        return hour >= dayStartHour && hour < dayEndHour ? index : -1
-      })
-      .filter((index) => index !== -1)
-
-    // 获取最高温度的 weatherCode
-    const maxCode = getRepresentativeWeatherCode(
-      maxTempIndices,
-      dayIndices,
-      dailyHourlyCodes,
-      data.daily.weathercode[dayIndex]
-    )
-
-    // 获取最低温度的 weatherCode
-    const minCode = getRepresentativeWeatherCode(
-      minTempIndices,
-      dayIndices,
-      dailyHourlyCodes,
-      data.daily.weathercode[dayIndex]
-    )
-
-    maxTempWeatherCodes.push(maxCode)
-    minTempWeatherCodes.push(minCode)
-  })
-
-  return {
-    maxTempWeatherCodes,
-    minTempWeatherCodes,
+  // Open-Meteo 天气代码优先级表（基于提供的完整列表）
+  const weatherPriority: { [wcode: number]: number } = {
+    99: 1, // 大冰雹
+    96: 2, // 小冰雹
+    95: 3, // 雷阵雨
+    86: 4, // 大阵雪
+    82: 5, // 大阵雨
+    67: 6, // 强冻雨
+    75: 7, // 大雪
+    85: 8, // 小阵雪
+    81: 9, // 中阵雨
+    73: 10, // 中雪
+    66: 11, // 轻微冻雨
+    65: 12, // 大雨
+    63: 13, // 中雨
+    61: 14, // 小雨
+    80: 15, // 小阵雨
+    71: 16, // 小雪
+    57: 17, // 密集冻毛雨
+    55: 18, // 密集毛雨
+    56: 19, // 轻微冻毛雨
+    53: 20, // 中等毛雨
+    51: 21, // 小毛雨
+    77: 22, // 霰
+    48: 23, // 雾凇
+    45: 24, // 雾
+    3: 25, // 阴
+    2: 26, // 多云
+    1: 27, // 晴
+    0: 28, // 晴
   }
-}
 
-// 辅助函数：选择最具代表性的 weatherCode
-export function getRepresentativeWeatherCode(
-  tempIndices: number[],
-  dayIndices: number[],
-  weatherCodes: number[],
-  dailyWeatherCode: number
-): number {
-  // 如果没有有效索引，返回 daily.weathercode
-  if (tempIndices.length === 0) return dailyWeatherCode
-
-  // 检查是否有温度索引在白天时段
-  const dayTempIndices = tempIndices.filter((index) =>
-    dayIndices.includes(index)
-  )
-
-  if (dayTempIndices.length > 0) {
-    // 如果最高/最低温度出现在白天，优先选择白天的 weatherCode
-    const dayTempCodes = dayTempIndices.map((index) => weatherCodes[index])
-    return getMostCommonWeatherCode(dayTempCodes, dailyWeatherCode)
-  } else {
-    // 如果温度不在白天，计算白天时段的 weatherCode 频率
-    const dayWeatherCodes = dayIndices.map((index) => weatherCodes[index])
-    return getMostCommonWeatherCode(dayWeatherCodes, dailyWeatherCode)
-  }
-}
-
-// 辅助函数：选择最常见的 weatherCode
-export function getMostCommonWeatherCode(
-  codes: number[],
-  dailyWeatherCode: number
-): number {
-  if (codes.length === 0) return dailyWeatherCode
-
-  const codeFrequency: { [key: number]: number } = {}
-  codes.forEach((code) => {
-    codeFrequency[code] = (codeFrequency[code] || 0) + 1
-  })
-
-  let selectedCode = codes[0]
-  let maxFrequency = 0
-  for (const [code, freq] of Object.entries(codeFrequency)) {
-    if (freq > maxFrequency) {
-      maxFrequency = freq
-      selectedCode = Number(code)
-    } else if (freq === maxFrequency && Number(code) === dailyWeatherCode) {
-      selectedCode = Number(code)
+  // 解析输入日期，格式为 YYYY-MM-DD
+  const targetDate = new Date(inputDate)
+  if (isNaN(targetDate.getTime())) {
+    console.error('Invalid date format')
+    return {
+      day: {
+        wcode: -1,
+        temp: -273,
+      },
+      night: {
+        wcode: -1,
+        temp: -273,
+      },
     }
   }
 
-  return selectedCode
+  // 定义白天和晚上的时间范围
+  const startDay = new Date(targetDate)
+  startDay.setHours(8, 0, 0, 0) // 当天 08:00
+  const endDay = new Date(targetDate)
+  endDay.setHours(20, 0, 0, 0) // 当天 20:00
+  const endNight = new Date(targetDate)
+  endNight.setDate(targetDate.getDate() + 1)
+  endNight.setHours(8, 0, 0, 0) // 次日 08:00
+
+  // 过滤白天数据 (08:00 - 20:00)
+  const daytimeData = wcodes.filter((entry) => {
+    const entryDate = new Date(entry.date)
+    return entryDate >= startDay && entryDate < endDay
+  })
+
+  // 过滤晚上数据 (20:00 - 次日 08:00)
+  const nighttimeData = wcodes.filter((entry) => {
+    const entryDate = new Date(entry.date)
+    return (
+      (entryDate >= endDay && entryDate < endNight) ||
+      (entryDate >= targetDate && entryDate < startDay)
+    )
+  })
+
+  // 计算代表性天气的辅助函数
+  const getRepresentativeWeather = (
+    data: WeatherHourlyData[]
+  ): { wcode: number; temp: number } => {
+    if (data.length === 0)
+      return {
+        wcode: -1,
+        temp: -273,
+      }
+
+    // 选择优先级最高的 wcode
+    let highestPriority = Infinity
+    let dominantWcode = data[0].wcode
+
+    // 计算平均温度
+    let totalTemp = 0
+
+    for (const entry of data) {
+      const priority = weatherPriority[entry.wcode] ?? 999 // 未定义的 wcode 给低优先级
+      if (priority < highestPriority) {
+        highestPriority = priority
+        dominantWcode = entry.wcode
+      }
+      totalTemp += entry.temp
+    }
+
+    // 计算平均温度
+    const avgTemp = totalTemp / data.length
+
+    return {
+      wcode: dominantWcode,
+      temp: Number(avgTemp.toFixed(1)), // 保留一位小数
+    }
+  }
+
+  // 获取白天和晚上的代表性天气
+  const daytimeSummary = getRepresentativeWeather(daytimeData)
+  const nighttimeSummary = getRepresentativeWeather(nighttimeData)
+
+  return {
+    day: daytimeSummary,
+    night: nighttimeSummary,
+  }
 }
 
+export const initDailyWeatherSummary = (wi: typeof defaultWeatherInfo) => {
+  if (wi.daily.dayTimeWeatherCode?.length) {
+    return wi
+  }
+  wi.daily.maxTempWeatherCodes = []
+  wi.daily.minTempWeatherCodes = []
+  wi.daily.dayTimeWeatherCode = []
+  wi.daily.nightTimeWeatherCode = []
+  wi.daily.time.forEach((v) => {
+    const summary = getDailyWeatherSummary(
+      moment(v).format('YYYY-MM-DD'),
+      wi.hourly.time.map((v, i) => {
+        return {
+          date: v,
+          wcode: wi.hourly.weathercode[i],
+          temp: wi.hourly.temperature_2m[i],
+        }
+      })
+    )
+    // console.log(
+    //   'getDailyWeatherSummary Weather:',
+    //   moment(v).format('YYYY-MM-DD'),
+    //   summary
+    // )
+
+    wi.daily.maxTempWeatherCodes.push(summary.day.wcode)
+    wi.daily.minTempWeatherCodes.push(summary.night.wcode)
+    wi.daily.dayTimeWeatherCode.push(summary.day)
+    wi.daily.nightTimeWeatherCode.push(summary.night)
+  })
+  return wi
+}
+
+// 测试函数
+// const result = getDailyWeatherSummary('2020-03-23')
+// console.log('Daytime Weather:', result.daytime) // 输出白天代表性天气
+// console.log('Nighttime Weather:', result.nighttime) // 输出晚上代表性天气
+
 let snowUrls = [
-  '/s/vid/snow4.mp4',
-  '/s/vid/snow5.mp4',
-  '/s/vid/snow3.mp4',
-  '/s/vid/snow1.mp4',
+  '/vid/snow4.mp4',
+  '/vid/snow5.mp4',
+  '/vid/snow3.mp4',
+  '/vid/snow1.mp4',
 ]
 
 let rainUrls = [
-  '/s/vid/rain4.mp4',
-  // '/s/vid/rain2.mp4',
-  '/s/vid/rain3.mp4',
-  '/s/vid/56.mp4',
+  '/vid/rain6.mp4',
+  '/vid/rain5.mp4',
+  '/vid/rain4.mp4',
+  // '/vid/rain2.mp4',
+  '/vid/rain3.mp4',
+  // '/vid/56.mp4',
 ]
 let overcastrls = [
-  '/s/vid/overcast.mp4',
-  '/s/vid/overcast2.mp4',
-  '/s/vid/overcast3.mp4',
-  '/s/vid/overcast4.mp4',
+  '/vid/overcast.mp4',
+  '/vid/overcast2.mp4',
+  '/vid/overcast3.mp4',
+  '/vid/overcast4.mp4',
 ]
 let clearUrls = [
-  // '/s/vid/clear7.mp4',
-  // '/s/vid/clear8.mp4',
-  '/s/vid/clear3.mp4',
-  '/s/vid/clear10.mp4',
-  '/s/vid/clear11.mp4',
-  // '/s/vid/clear5.mp4',
+  // '/vid/clear7.mp4',
+  // '/vid/clear8.mp4',
+  '/vid/clear3.mp4',
+  '/vid/clear10.mp4',
+  '/vid/clear11.mp4',
+  // '/vid/clear5.mp4',
 ]
-let cloudyUrls = [
-  '/s/vid/cloudy1.mp4',
-  '/s/vid/cloudy2.mp4',
-  '/s/vid/clear2.mp4',
-]
+let cloudyUrls = ['/vid/cloudy1.mp4', '/vid/cloudy2.mp4', '/vid/clear2.mp4']
 let nightUrls = [
-  '/s/vid/night1.mp4',
-  '/s/vid/night2.mp4',
-  '/s/vid/night3.mp4',
-  // '/s/vid/night4.mp4',
-  '/s/vid/night5.mp4',
+  '/vid/night1.mp4',
+  '/vid/night2.mp4',
+  '/vid/night3.mp4',
+  // '/vid/night4.mp4',
+  '/vid/night5.mp4',
 ]
 
 let twilightUrls = [
-  '/s/vid/clear4.mp4',
-  '/s/vid/twilight1.mp4',
-  '/s/vid/twilight2.mp4',
+  '/vid/clear4.mp4',
+  '/vid/twilight1.mp4',
+  '/vid/twilight2.mp4',
 ]
 
-let morningUrls = ['/s/vid/clear9.mp4', '/s/vid/clear4.mp4']
+let morningUrls = ['/vid/clear9.mp4', '/vid/clear4.mp4']
 
 let snowUrl = snowUrls[Number(random(0, snowUrls.length))] || snowUrls[0]
 let rainUrl = rainUrls[Number(random(0, rainUrls.length))] || rainUrls[0]
@@ -3555,7 +3834,7 @@ export const getWeatherVideoUrl = (
     dUrl.url = morningUrl
   }
   if ([45, 48].includes(weatherCode)) {
-    dUrl.url = '/s/vid/fog.mp4'
+    dUrl.url = '/vid/fog.mp4'
   }
 
   if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(weatherCode)) {
@@ -3563,7 +3842,7 @@ export const getWeatherVideoUrl = (
   }
 
   if ([56, 57, 66, 67].includes(weatherCode)) {
-    dUrl.url = '/s/vid/562.mp4'
+    dUrl.url = '/vid/562.mp4'
   }
 
   if ([71, 73, 75].includes(weatherCode)) {
@@ -3575,18 +3854,18 @@ export const getWeatherVideoUrl = (
   }
 
   if ([95].includes(weatherCode)) {
-    dUrl.url = '/s/vid/thunderstorm.mp4'
+    dUrl.url = '/vid/thunderstorm.mp4'
   }
   if ([96, 99].includes(weatherCode)) {
-    dUrl.url = '/s/vid/hail.mp4'
+    dUrl.url = '/vid/hail.mp4'
   }
 
   if (!dUrl.url && weatherCode >= 0) {
-    dUrl.url = '/s/vid/clear2.mp4'
+    dUrl.url = '/vid/clear2.mp4'
   }
 
   if (dUrl.url) {
-    dUrl.url = server.url + dUrl.url
+    dUrl.url = appConfig.saass.url + '/static' + dUrl.url
   }
   // console.log('getWeatherVideoUrl1', options, weatherCode, dUrl)
 
@@ -3629,6 +3908,7 @@ export interface WeatherSyncData {
     updateAllTime: number
     default: boolean
     sort: number
+    lang: string
   }[]
   units: {
     temperature: TemperatureEnum
@@ -3661,6 +3941,8 @@ export const weatherSlice = createSlice({
     } as WeatherSyncData,
     allowSyncCloudData: true,
 
+    downloaded: false,
+
     selectUnits: {
       temperatureUnits: ['°C', '°F'],
       precipitationUnits: ['mm', 'cm', 'in'],
@@ -3671,6 +3953,12 @@ export const weatherSlice = createSlice({
     },
   },
   reducers: {
+    setDownloaded: (
+      state,
+      params: ActionParams<(typeof state)['downloaded']>
+    ) => {
+      state.downloaded = params.payload
+    },
     setAllowSyncCloudData: (
       state,
       params: ActionParams<(typeof state)['allowSyncCloudData']>
@@ -3710,6 +3998,7 @@ export const weatherSlice = createSlice({
 
       // console.log('params.payload.cities ', deepCopy(params.payload.cities))
       state.weatherData.cities = params.payload.cities
+
       if (params.payload.lastUpdateTime) {
         state.weatherData.lastUpdateTime = params.payload.lastUpdateTime
       }
@@ -3735,14 +4024,6 @@ export const weatherSlice = createSlice({
       const wd = deepCopy(state.weatherData)
 
       storage.global.getAndSet('WeatherData', async (sVal) => {
-        const { weather } = store.getState()
-        store.dispatch(
-          weatherMethods.syncData({
-            data: {
-              cities: weather.weatherData.cities,
-            },
-          })
-        )
         return {
           ...sVal,
           units: params.payload,
@@ -3795,8 +4076,12 @@ export const weatherMethods = {
         console.log(
           '开始下载并同步 downloadData',
           res,
-          res.data.fileInfo?.lastModified
+          res.data?.fileInfo?.lastModified,
+          weather.weatherData.lastUpdateTime
         )
+
+        thunkAPI.dispatch(weatherSlice.actions.setDownloaded(true))
+
         if (res.code === 200 && res?.data?.urls?.domainUrl) {
           // 线上对比
           if (
@@ -3901,6 +4186,13 @@ export const weatherMethods = {
         )
       } catch (error) {
         console.error(error)
+
+        thunkAPI.dispatch(weatherSlice.actions.setDownloaded(true))
+        thunkAPI.dispatch(
+          layoutSlice.actions.setLayoutHeaderLoading({
+            loading: false,
+          })
+        )
         showSnackbar(
           t('failedToConnectToApp', {
             appName: 'SAaSS',
@@ -3941,6 +4233,11 @@ export const weatherMethods = {
           console.log('未登录')
           return
         }
+
+        if (!weather.downloaded) {
+          return
+        }
+
         thunkAPI.dispatch(
           layoutSlice.actions.setLayoutHeaderLoading({
             loading: true,
@@ -3981,6 +4278,8 @@ export const weatherMethods = {
           })
 
           console.log('res', res)
+
+          console.log('开始下载并同步 上传中', res, weatherSyncData)
 
           if (res.code === 200) {
             const { uploadFile } = saass

@@ -51,6 +51,7 @@ func InitRouter() {
 	// 	//fmt.Println(index, "\t",value)
 	// 	Router.Use(midFunc)
 	// }
+
 	Router.StaticFS("/s", http.Dir("./static"))
 	// Router.StaticFile("/favicon.ico", "./client/out/favicon.ico")
 	// Router.StaticFile("/", "./client/out/index.html")

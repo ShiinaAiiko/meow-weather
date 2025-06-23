@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { bindEvent, snackbar, progressBar, alert } from '@saki-ui/core'
 import { deepCopy } from '@nyanyajs/utils'
-import { weatherSlice } from '../store/weather'
+import { weatherMethods, weatherSlice } from '../store/weather'
 import { configSlice, eventListener, R } from '../store/config'
 import {
   SakiAsideModal,
@@ -160,6 +160,14 @@ const WeatherUnitsModal = ({ visible }: { visible: boolean }) => {
 
                               dispatch(
                                 weatherSlice.actions.setWeatherUnits(tempUnits)
+                              )
+
+                              store.dispatch(
+                                weatherMethods.syncData({
+                                  data: {
+                                    cities: weather.weatherData.cities,
+                                  },
+                                })
                               )
 
                               setOpenTypeDP('')

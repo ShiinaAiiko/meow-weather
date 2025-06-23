@@ -51,7 +51,13 @@
     "visibilityUnit": "visibility unit",
     "timeFormatUnit": "time format",
     "24-hour": "24-hour system",
-    "12-hour": "12-hour system"
+    "12-hour": "12-hour system",
+
+    "rain": "Rain",
+    "snow": "Snow",
+    "sleet": "Sleet",
+    "startRainSnowTip": "{{minutesFromNow}} minutes from now, it will start to {{precipitationType}}.",
+    "stopRainSnowTip": "{{minutesFromNow}} minutes from now, {{precipitationType}} will stop."
   },
   "prompt": {
     "next": "Next",
@@ -138,6 +144,10 @@
 
     "searching": "Searching",
 
-    "syncing": "Syncing"
+    "syncing": "Syncing",
+
+    "refreshWeather": "Get the latest weather",
+    "refreshWeatherContent": "Do you want to get the latest weather conditions immediately?",
+    "refreshTimesTooManny": "You just refreshed {{time}} ago, please try again later."
   }
 }

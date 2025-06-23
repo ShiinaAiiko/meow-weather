@@ -17,6 +17,10 @@ const LoadingPage = (): JSX.Element => {
   const router = useRouter()
 
   useEffect(() => {
+    const htmlEl = document.querySelector('html')
+    if (htmlEl) {
+      htmlEl.style.overflow = 'hidden'
+    }
     setMounted(true)
     setProgressBar(progressBar + 0.2 >= 1 ? 1 : progressBar + 0.2)
   }, [])
@@ -100,6 +104,11 @@ const LoadingPage = (): JSX.Element => {
                     animation.onfinish = () => {
                       el.style.display = 'none'
                       // setHideLoading(true)
+
+                      const htmlEl = document.querySelector('html')
+                      if (htmlEl) {
+                        htmlEl.style.overflow = ''
+                      }
                       setHideLoading(true)
                     }
                   }

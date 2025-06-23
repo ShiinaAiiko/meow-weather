@@ -18,6 +18,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { bindEvent, snackbar, progressBar, alert } from '@saki-ui/core'
 import {
+  AsyncQueue,
   Debounce,
   deepCopy,
   NRequest,
@@ -33,6 +34,7 @@ import {
   formatDurationI18n,
   getDistance,
   formatDistance,
+  showSnackbar,
 } from '../../plugins/methods'
 import {
   getDetailedPressureLevel,
@@ -61,12 +63,16 @@ import {
   createPrecipitationDataChart,
   createDewPointChart,
   weatherSlice,
-  getMaxMinTempWeatherCodes,
+  // getMaxMinTempWeatherCodes,
   getThemeColors,
   getWeatherVideoUrl,
   getWeatherIcon,
   ntextWcode,
   getWarningColor,
+  getDailyWeatherSummary,
+  initDailyWeatherSummary,
+  generateWeatherChangeText,
+  generateWeatherChangeTextQw5m,
 } from '../../store/weather'
 
 import {
@@ -81,6 +87,7 @@ import {
   changeLanguage,
   languages,
   defaultLanguage,
+  detectionLanguage,
 } from '../../plugins/i18n/i18n'
 import moment, { unix } from 'moment'
 import { configSlice, eventListener, R } from '../../store/config'
@@ -92,6 +99,8 @@ import {
   SakiAsideModal,
   SakiButton,
   SakiCol,
+  SakiContextMenu,
+  SakiContextMenuItem,
   SakiDropdown,
   SakiIcon,
   SakiInput,
@@ -160,6 +169,54 @@ export async function getStaticProps({
   }
 }
 
+const UpdateTimeComponent = ({ updatedTime }: { updatedTime: number }) => {
+  const { t, i18n } = useTranslation('weatherPage')
+
+  const dispatch = useDispatch<AppDispatch>()
+  const [updateTime, setUpdateTime] = useState(new Date().getTime())
+  useEffect(() => {
+    let startTime = Math.round(updatedTime / 1000)
+
+    const timer = setInterval(() => {
+      let curTime = moment().unix()
+      setUpdateTime(curTime)
+
+      let t = curTime - startTime
+      if (t - (15 * 60 + 10) >= 0 && t % 10 === 0) {
+        // if ((curTime - startTime) % (15 * 60 + 10) === 0) {
+        dispatch(
+          methods.position.watchPosition({
+            watch: false,
+          })
+        )
+      }
+    }, 1 * 1000)
+    // console.log('updatetime sub ue')
+
+    return () => {
+      clearInterval(timer)
+    }
+  }, [updatedTime])
+  // console.log('updatetime sub', updatedTime, updateTime - updatedTime / 1000)
+
+  return (
+    <>
+      {t('updatedTime', {
+        ns: 'sakiuiWeather',
+        time:
+          formatDurationI18n(
+            (new Date().getTime() - updatedTime) / 1000,
+            false
+          ) ||
+          0 +
+            t('secondTime', {
+              ns: 'prompt',
+            }),
+      })}
+    </>
+  )
+}
+
 const WeatherPage = () => {
   const { t, i18n } = useTranslation('weatherPage')
   const [mounted, setMounted] = useState(false)
@@ -221,6 +278,37 @@ const WeatherPage = () => {
     dispatch(configSlice.actions.setSsoAccount(!isCustomLatlng))
 
     dispatch(layoutSlice.actions.setLayoutHeader(true))
+
+    networkConnectionStatusDetection(
+      networkConnectionStatusDetectionEnum.airQualityAPI
+    )
+    networkConnectionStatusDetection(
+      networkConnectionStatusDetectionEnum.openMeteo
+    )
+    networkConnectionStatusDetection(
+      networkConnectionStatusDetectionEnum.openStreetMap
+    )
+
+    const aq = new AsyncQueue({
+      maxQueueConcurrency: 5,
+    })
+    // eventListener.on('changeLanguage', async (lang) => {
+    //   const { weather } = store.getState()
+
+    //   const tempCities = deepCopy(weather.weatherData.cities)
+
+    //   console.log('langlanglang', lang)
+
+    //   const l = lang === 'system' ? detectionLanguage() : lang
+
+    //   console.log('tempCities', tempCities)
+
+    //   dispatch(
+    //     weatherSlice.actions.setWeatherData({
+    //       cities: tempCities,
+    //     })
+    //   )
+    // })
     ;(async () => {
       const wData = await storage.global.get('CitiesListType')
 
@@ -278,19 +366,30 @@ const WeatherPage = () => {
     //   } as any)
     // )
 
-    const timer = setInterval(() => {
-      setUpdateTime(new Date().getTime())
-      dispatch(
-        methods.position.watchPosition({
-          watch: false,
-        })
-      )
-    }, 16 * 60 * 1000)
+    // let startTime = moment().unix()
+    // let time = 0
+    // const timer = setInterval(() => {
+    //   let curTime = moment().unix()
+    //   setUpdateTime(curTime)
+
+    //   time = curTime - startTime
+
+    //   if (time % (15 * 60) === 0) {
+    //     dispatch(
+    //       methods.position.watchPosition({
+    //         watch: false,
+    //       })
+    //     )
+    //   }
+    // }, 5 * 1000)
+    // }, 16 * 60 * 1000)
 
     return () => {
-      clearInterval(timer)
+      // clearInterval(timer)
     }
   }, [])
+
+  console.log('updatetime parent')
 
   const { themeColor, themeColors } = useMemo(() => {
     let themeColor: 'Dark' | 'Light' =
@@ -381,6 +480,7 @@ const WeatherPage = () => {
           updateAllTime: 0,
           default: false,
           sort: 0,
+          lang: config.lang,
         })
       }
       tempCities.sort((a, b) => {
@@ -403,18 +503,25 @@ const WeatherPage = () => {
 
   // const [cities, setCities] = useState<WeatherSyncData['cities'][0][]>([])
 
+  const loadWeatherDeb = useRef(new Debounce())
+
   const getWeatherData = async () => {
     try {
       if (loadStatus === 'loading') return
       const nowUnix = new Date().getTime()
 
-      const promiseAll: any[] = []
-
       // 1、先检测是否需要整体更新
       let isUpdateAll = false
       let isUpdateCur = false
+      let isUpdateCityNameLang = false
+
+      console.log('getWeatherData 开始获取', cities)
 
       cities.forEach((v, i) => {
+        if (!isUpdateCityNameLang && v.lang !== config.lang) {
+          isUpdateCityNameLang = true
+        }
+
         if (
           !isUpdateAll &&
           (!v?.weatherInfo ||
@@ -431,6 +538,7 @@ const WeatherPage = () => {
           (!v.updateCurTime ||
             !v?.weatherInfo ||
             !v?.weatherInfo?.daily?.time?.length ||
+            !v?.weatherInfo?.minutely_15?.time?.length ||
             nowUnix - v.updateCurTime > 15 * 60 * 1000)
         ) {
           isUpdateCur = true
@@ -441,29 +549,6 @@ const WeatherPage = () => {
             !v.updateCurTime,
             nowUnix - v.updateCurTime
           )
-
-          // if (ttttt.current >= 1) {
-          //   return
-          // }
-
-          // getWeather(v.lat, v.lng)
-
-          // ttttt.current += 1
-
-          // promiseAll.push(
-          //   new Promise(async (res, rej) => {
-          //     const cityInfo = await getCityInfo(v.lat, v.lng)
-          //     const weatherInfo = await getWeather(v.lat, v.lng)
-          //     // console.log('getCityInfo', cityInfo, weatherInfo)
-
-          //     res({
-          //       cityInfo,
-          //       weatherInfo,
-          //       lat: v.lat,
-          //       lng: v.lng,
-          //     })
-          //   })
-          // )
         }
       })
 
@@ -471,15 +556,21 @@ const WeatherPage = () => {
         'getWeatherData isUpdateAll',
         curCityIndex,
         isUpdateAll,
-        isUpdateCur
+        isUpdateCur,
+        isUpdateCityNameLang,
+        config.lang
       )
 
       let tempCities: typeof cities = deepCopy(cities)
 
       let isSetCities = false
 
-      if (isUpdateAll || isUpdateCur) {
+      if (isUpdateAll || isUpdateCur || isUpdateCityNameLang) {
         setLoadStatus('loading')
+
+        loadWeatherDeb.current.increase(() => {
+          setLoadStatus('loaded')
+        }, 30 * 1000)
       }
 
       if (isUpdateAll) {
@@ -531,6 +622,54 @@ const WeatherPage = () => {
         isSetCities = true
       }
 
+      if (isUpdateCityNameLang) {
+        const aq = new AsyncQueue({
+          maxQueueConcurrency: 3,
+        })
+        tempCities.forEach((v, i) => {
+          aq.increase(async () => {
+            if (v.displayName) {
+              const res: any = await httpApi.v1.Geo.search({
+                keywords: v.displayName,
+                lang: config.lang,
+              })
+
+              if (res?.length) {
+                let results = []
+                if (res?.length) {
+                  results = res
+                } else {
+                  results = [res]
+                }
+
+                for (let si = 0; si < results.length; si++) {
+                  const sv = results[si]
+
+                  if (Number(sv?.lat) === v.lat && Number(sv?.lon) === v.lng) {
+                    tempCities[i].displayName = sv.display_name
+                  }
+                }
+                tempCities[i].lang = config.lang
+              }
+            } else {
+              tempCities[i].lang = config.lang
+            }
+
+            if (isUpdateCur && i !== curCityIndex) {
+              const ci = await getCityInfo(v?.lat, v?.lng, config.lang)
+              if (ci) {
+                tempCities[i].cityInfo = ci
+                tempCities[i].lang = config.lang
+              }
+            }
+          })
+        })
+
+        await aq.wait.waiting()
+
+        isSetCities = true
+      }
+
       if (isSetCities) {
         dispatch(
           weatherSlice.actions.setWeatherData({
@@ -542,13 +681,15 @@ const WeatherPage = () => {
       setLoadStatus('loaded')
     } catch (error) {
       console.error(error)
+      setLoadStatus('loaded')
     }
   }
 
-  const getCityInfo = async (lat: number, lng: number) => {
+  const getCityInfo = async (lat: number, lng: number, lang?: string) => {
     const res = await httpApi.v1.Geo.regeo({
       lat,
       lng,
+      lang,
     })
 
     console.log('getCityInfo regeo res', cities, res)
@@ -621,7 +762,22 @@ const WeatherPage = () => {
       'uv_index_clear_sky_max',
       'wind_direction_10m_dominant',
       'wind_gusts_10m_max',
-    ].join(',')}&windspeed_unit=ms&forecast_days=16&past_days=1&timezone=${
+    ].join(',')}&minutely_15=${[
+      'temperature_2m',
+      'precipitation',
+      'rain',
+      'snowfall',
+      'snowfall_height',
+      'weather_code',
+      'wind_speed_10m',
+      'wind_gusts_10m',
+      'relative_humidity_2m',
+      'dew_point_2m',
+      'apparent_temperature',
+      'lightning_potential',
+    ].join(
+      ','
+    )}&forecast_minutely_15=12&past_minutely_15=0&forecast_days=16&past_days=1&timezone=${
       localTimezone.current
     }`
 
@@ -654,7 +810,7 @@ const WeatherPage = () => {
     )
     if (!data?.current) return
 
-    const wi: typeof weatherInfo = {
+    let wi: typeof weatherInfo = {
       ...weatherInfo,
       current: {
         temperature: data?.current?.temperature_2m || -273.15,
@@ -683,12 +839,15 @@ const WeatherPage = () => {
         wind_gusts_10m: data?.current?.wind_gusts_10m || 0,
       },
       current_units: data.current_units,
+      minutely_15: data.minutely_15,
+      minutely_15_units: data.minutely_15_units,
       daily: data.daily,
       dailyUnits: data.daily_units,
       hourly: data.hourly,
       hourlyUnits: data.hourly_units,
       airQuality: await getAirQuality(lat, lng),
       alert: await getAlerts(lat, lng),
+      qweather_5m: await get5m(lat, lng),
     }
 
     // getUVIndex(lat, lng)
@@ -702,11 +861,13 @@ const WeatherPage = () => {
 
     // const wd = data?.current?.wind_direction_10m || 0
 
-    const codes = getMaxMinTempWeatherCodes(wi)
-    // console.log('getMaxMinTempWeatherCodes', codes)
+    // const codes = getMaxMinTempWeatherCodes(wi)
+    // // console.log('getMaxMinTempWeatherCodes', codes)
 
-    wi.daily.maxTempWeatherCodes = codes.maxTempWeatherCodes
-    wi.daily.minTempWeatherCodes = codes.minTempWeatherCodes
+    // wi.daily.maxTempWeatherCodes = codes.maxTempWeatherCodes
+    // wi.daily.minTempWeatherCodes = codes.minTempWeatherCodes
+
+    wi = initDailyWeatherSummary(wi)
 
     console.log('getWeather', wi)
 
@@ -736,9 +897,7 @@ const WeatherPage = () => {
       'precipitation',
       'precipitation_probability',
       'wind_gusts_10m',
-    ].join(',')}&windspeed_unit=ms&forecast_days=16&past_days=1&timezone=${
-      localTimezone.current
-    }`
+    ].join(',')}&forecast_days=16&past_days=1&timezone=${localTimezone.current}`
 
     const connectionStatusOpenMeteo = await networkConnectionStatusDetection(
       networkConnectionStatusDetectionEnum.openMeteo
@@ -889,6 +1048,38 @@ const WeatherPage = () => {
 
     return wi
   }
+  const get5m = async (lat: number, lng: number) => {
+    const url = `https://mc4y3j6emb.re.qweatherapi.com//v7/minutely/5m?location=${
+      lng + ',' + lat
+    }&lang=${
+      config.lang === 'zh-CN'
+        ? 'zh'
+        : config.lang === 'zh-TW'
+        ? 'zh-hant'
+        : 'en'
+    }&key=4984df9138e04b67a3cb104a96ae0384`
+
+    const res = await R.request({
+      method: 'GET',
+      url: url,
+    })
+
+    let data = res?.data as any
+
+    console.log('getAlerts', res)
+
+    if (data?.code !== '200') return defaultWeatherInfo.qweather_5m
+
+    const wi: (typeof defaultWeatherInfo)['qweather_5m'] = {
+      ...defaultWeatherInfo.qweather_5m,
+      updateTime: data?.updateTime || '',
+      summary: data?.summary || '',
+      minutely: data?.minutely || [],
+      refer: data?.refer,
+    }
+
+    return wi
+  }
 
   const ttttt = useRef(0)
 
@@ -1003,6 +1194,15 @@ const WeatherPage = () => {
   const [isSetPosition, setIsSetPosition] = useState(false)
 
   useEffect(() => {
+    // console.log(
+    //   'getWeatherData ue',
+    //   position?.position?.timestamp,
+    //   isInitWData,
+    //   openCityDropdown,
+    //   cities,
+    //   curCityIndex,
+    //   config.lang
+    // )
     if (isInitWData && position?.position?.timestamp && cities.length) {
       getWeatherDeb.current.increase(() => {
         getWeatherData()
@@ -1014,6 +1214,7 @@ const WeatherPage = () => {
     openCityDropdown,
     cities,
     curCityIndex,
+    config.lang,
   ])
 
   const { weatherInfo, cityInfo, cityItem } = useMemo(() => {
@@ -1032,10 +1233,11 @@ const WeatherPage = () => {
     // }
     const cityItem = cities?.[curCityIndex === -1 ? 0 : curCityIndex]
 
-    const wi = {
+    let wi = {
       ...deepCopy(defaultWeatherInfo),
       ...deepCopy(cityItem?.weatherInfo),
     }
+    wi = initDailyWeatherSummary(wi)
 
     // if (wi) {
     //   wi.current_units.wind_gusts_10m = 'km/h'
@@ -1055,7 +1257,7 @@ const WeatherPage = () => {
     // }
 
     return {
-      weatherInfo: wi || defaultWeatherInfo,
+      weatherInfo: wi,
       cityInfo: cityItem?.cityInfo,
       cityItem: {
         ...cityItem,
@@ -1124,6 +1326,7 @@ const WeatherPage = () => {
             displayName: result.display_name,
             lat: Number(result.lat),
             lng: Number(result.lon),
+            lang: config.lang,
           }
         }
         return v
@@ -1139,6 +1342,7 @@ const WeatherPage = () => {
           updateCurTime: 0,
           default: false,
           sort: tempCities.length + 1,
+          lang: config.lang,
         })
       }
 
@@ -1295,20 +1499,6 @@ const WeatherPage = () => {
 
     const uvInfo = getUVInfo(uvIndex)
 
-    // let visibilityVal = weatherInfo.current.visibility
-    // let visibilityUnit = ''
-    // if (weatherInfo.current.visibility < 1000) {
-    //   visibilityVal = Math.round(weatherInfo.current.visibility || 0)
-    //   visibilityUnit = 'm'
-    // }
-    // if (weatherInfo.current.visibility < 1000 * 10) {
-    //   visibilityVal =
-    //     Math.round((weatherInfo.current.visibility || 0) / 10) / 100
-    //   visibilityUnit = 'km'
-    // }
-    // visibilityVal = Math.round((weatherInfo.current.visibility || 0) / 100) / 10
-    // visibilityUnit = 'km'
-
     const nowH = moment().format('YYYY-MM-DD HH:00')
     let nowHIndex = -1
     weatherInfo.hourly.time.some((v, i) => {
@@ -1353,7 +1543,7 @@ const WeatherPage = () => {
       )
     )
 
-    return {
+    const params = {
       uvIndex: {
         val: uvIndex,
         unit: weatherInfo.dailyUnits.uv_index_max,
@@ -1362,7 +1552,7 @@ const WeatherPage = () => {
         desc: uvInfo.text,
       },
       windy: {
-        val: weatherInfo?.current?.wind_speed_10m.toFixed(1),
+        val: weatherInfo?.current?.wind_speed_10m,
         unit: weatherInfo?.current_units?.wind_speed_10m,
         // desc: uvInfo.text,
         desc: '',
@@ -1388,7 +1578,7 @@ const WeatherPage = () => {
         desc: t('currentDewPoint', {
           ns: 'sakiuiWeather',
           num: `${convertTemperature(
-            precipitation24Next,
+            weatherInfo.current.dew_point_2m,
             weatherInfo.current_units.dew_point_2m as any,
             weather.weatherData.units.temperature
           )}${weather.weatherData.units.temperature}`,
@@ -1431,7 +1621,83 @@ const WeatherPage = () => {
         ...tomorrowAQ,
         aqiDesc: getAqiDescription(tomorrowAQ.european_aqi),
       },
+      curWeather: {
+        temperature: convertTemperature(
+          weatherInfo?.current?.temperature,
+          (weatherInfo?.current_units?.temperature_2m as any) || '°C',
+          weather.weatherData.units.temperature
+        ),
+        temperatureUnit: weather.weatherData.units.temperature,
+        weatherCode: weatherInfo?.current?.weatherCode,
+        apparentTemperature: convertTemperature(
+          weatherInfo?.current?.apparentTemperature,
+          (weatherInfo?.current_units?.apparent_temperature as any) || '°C',
+          weather.weatherData.units.temperature
+        ),
+        precipitationProbability:
+          weatherInfo?.current?.precipitationProbability,
+        precipitationProbabilityUnit:
+          weatherInfo?.current_units?.precipitation_probability,
+        precipitation: convertPrecipitation(
+          weatherInfo?.current?.precipitation,
+          (weatherInfo?.current_units?.precipitation as any) || 'mm',
+          weather.weatherData.units.precipitation
+        ),
+        precipitationUnit: weather.weatherData.units.precipitation,
+        tip: generateWeatherChangeText({
+          minutely_15: {
+            time: weatherInfo.minutely_15.time,
+            weather_code: weatherInfo.minutely_15.weather_code,
+            precipitation: weatherInfo.minutely_15.precipitation,
+            rain: weatherInfo.minutely_15.rain,
+            snowfall: weatherInfo.minutely_15.snowfall,
+          },
+        }),
+      },
     }
+
+    if (
+      !params.curWeather.tip &&
+      Number(weatherInfo.qweather_5m?.minutely?.[0]?.precip) >= 0
+    ) {
+      params.curWeather.tip = generateWeatherChangeTextQw5m({
+        qw5m: {
+          updateTime: weatherInfo.qweather_5m.updateTime,
+          summary: weatherInfo.qweather_5m.summary,
+          minutely: weatherInfo.qweather_5m.minutely,
+          refer: weatherInfo.qweather_5m.refer,
+        },
+      })
+    }
+
+    if (params.curWeather.precipitationProbability > 50) {
+      params.curWeather.temperature = convertTemperature(
+        weatherInfo?.minutely_15?.temperature_2m?.[0] ||
+          weatherInfo?.current?.temperature,
+        (weatherInfo?.minutely_15_units?.temperature_2m as any) || '°C',
+        weather.weatherData.units.temperature
+      )
+      params.curWeather.apparentTemperature = convertTemperature(
+        weatherInfo?.minutely_15?.apparent_temperature?.[0] ||
+          weatherInfo?.current?.apparentTemperature,
+        (weatherInfo?.minutely_15_units?.apparent_temperature as any) || '°C',
+        weather.weatherData.units.temperature
+      )
+      params.curWeather.weatherCode =
+        weatherInfo?.minutely_15?.weather_code?.[0]
+    }
+
+    // console.log(
+    //   'weatherInfoweatherInfo',
+    //   weatherInfo,
+    //   params,
+    //   weatherInfo.minutely_15,
+    //   params.curWeather.temperature,
+    //   weatherInfo?.current?.temperature,
+    //   weatherInfo?.minutely_15?.temperature_2m?.[0]
+    // )
+
+    return params
   }, [
     weatherInfo,
     language,
@@ -1560,6 +1826,8 @@ const WeatherPage = () => {
 
       console.log('getWeather curIndex', curIndex)
 
+      // console.log('weatherInfo.daily.time', weatherInfo.daily)
+
       createWeatherChart({
         container: '#hourly-chart',
         weatherInfo,
@@ -1609,7 +1877,7 @@ const WeatherPage = () => {
               high: highTemp,
               low: -9999,
               weatherCode: weatherCode,
-              maxTempWeatherCode: weatherInfo.daily.maxTempWeatherCodes[i],
+              maxTempWeatherCode: weatherInfo.daily?.maxTempWeatherCodes?.[i],
               minTempWeatherCode: -9999,
               precipitationProbabilityMax:
                 weatherInfo.hourly.precipitation_probability[i],
@@ -1647,8 +1915,8 @@ const WeatherPage = () => {
               high: highTemp,
               low: lowTemp,
               weatherCode: weatherCode,
-              maxTempWeatherCode: weatherInfo.daily.maxTempWeatherCodes[i],
-              minTempWeatherCode: weatherInfo.daily.minTempWeatherCodes[i],
+              maxTempWeatherCode: weatherInfo.daily?.maxTempWeatherCodes?.[i],
+              minTempWeatherCode: weatherInfo.daily?.minTempWeatherCodes?.[i],
               precipitationProbabilityMax:
                 weatherInfo.daily.precipitation_probability_max[i],
               precipitationProbabilityMin:
@@ -1700,10 +1968,10 @@ const WeatherPage = () => {
     const scrollEvent = () => {
       const scrollTop =
         document.documentElement.scrollTop || document.body.scrollTop
-      console.log(
-        'ocument.body wpHeaderEl scrollEvent',
-        document.body.scrollTop
-      )
+      // console.log(
+      //   'ocument.body wpHeaderEl scrollEvent',
+      //   document.body.scrollTop
+      // )
       setFixedHeader(scrollTop >= 60)
       setBgBlur(scrollTop >= 100)
     }
@@ -1974,6 +2242,27 @@ const WeatherPage = () => {
     return Math.max(cItem.updateCurTime || 0, cItem.updateAllTime || 0, 0)
   }
 
+  const [showContext, setShowContext] = useState({
+    x: 0,
+    y: 0,
+    label: '',
+    visible: false,
+  })
+  const [contextMenuEl, setContextMenuEl] = useState<any>()
+
+  useEffect(() => {
+    if (showContext.visible && contextMenuEl) {
+      // console.log('showContext.label', showContext.label)
+      contextMenuEl?.show({
+        x: showContext.x,
+        y: showContext.y,
+        label: showContext.label,
+      })
+      return
+    }
+    setContextMenuEl(undefined)
+  }, [showContext.visible, contextMenuEl])
+
   return (
     <>
       <Head>
@@ -2121,10 +2410,13 @@ const WeatherPage = () => {
                                 '--deviceWH-w': config.deviceWH.w + 'px',
                                 '--deviceWH-h': config.deviceWH.h + 'px',
                                 '--dp-w':
-                                  Math.min(360, config.deviceWH.w) + 'px',
+                                  Math.min(
+                                    citiesListType === 'Grid' ? 720 : 360,
+                                    config.deviceWH.w
+                                  ) + 'px',
                               } as any
                             }
-                            className="wp-h-l-cities"
+                            className={`wp-h-l-cities  ${config.deviceType} ${citiesListType} `}
                           >
                             <div className="cities-header">
                               <div className="c-h-left">
@@ -2237,9 +2529,10 @@ const WeatherPage = () => {
                                   </SakiButton>
                                 )}
 
-                                {!openEditCity ? (
+                                {!openEditCity &&
+                                config.deviceType !== 'Mobile' ? (
                                   <>
-                                    {/* <SakiButton
+                                    <SakiButton
                                       onTap={() => {
                                         setCitiesListType(
                                           citiesListType === 'List'
@@ -2267,7 +2560,7 @@ const WeatherPage = () => {
                                             : 'Grid'
                                         }
                                       ></saki-icon>
-                                    </SakiButton> */}
+                                    </SakiButton>
 
                                     {/* <SakiDropdown
                                       ref={
@@ -2347,9 +2640,7 @@ const WeatherPage = () => {
                               </div>
                             </div>
                             <div
-                              className={`cities-list ${
-                                openEditCity ? 'List' : citiesListType
-                              } scrollBarDefault`}
+                              className={`cities-list ${config.deviceType} ${citiesListType} scrollBarDefault`}
                             >
                               {cities.map((v, i) => {
                                 const distance = getDistance(
@@ -2384,6 +2675,19 @@ const WeatherPage = () => {
 
                                           setOpenCityDropdown(false)
                                         },
+
+                                        contextmenu: (e: any) => {
+                                          console.log(e)
+                                          e.preventDefault()
+                                          if (!v.curPopsition) {
+                                            setShowContext({
+                                              x: e?.pageX,
+                                              y: e?.pageY,
+                                              label: i.toString(),
+                                              visible: true,
+                                            })
+                                          }
+                                        },
                                       }) as any
                                     }
                                     className={
@@ -2393,22 +2697,82 @@ const WeatherPage = () => {
                                     key={i}
                                   >
                                     {openEditCity && !v.curPopsition ? (
-                                      <div className="c-i-icon">
+                                      <div
+                                        className={
+                                          'c-i-icon ' +
+                                          (citiesListType === 'Grid' &&
+                                          config.deviceType !== 'Mobile'
+                                            ? 'fixed'
+                                            : '')
+                                        }
+                                      >
                                         <SakiButton
                                           onTap={() => {
                                             deleteCityItem(i)
                                           }}
                                           type="CircleIconGrayHover"
-                                          border="none"
-                                          margin="0 8px 0 0"
-                                          bgColor="transparent"
-                                          bgHoverColor="transparent"
-                                          bgActiveColor="transparent"
+                                          margin={
+                                            citiesListType === 'Grid' &&
+                                            config.deviceType !== 'Mobile'
+                                              ? '0 0px 0 0'
+                                              : '0 8px 0 0'
+                                          }
+                                          width={
+                                            citiesListType === 'Grid' &&
+                                            config.deviceType !== 'Mobile'
+                                              ? '24px'
+                                              : '36px'
+                                          }
+                                          height={
+                                            citiesListType === 'Grid' &&
+                                            config.deviceType !== 'Mobile'
+                                              ? '24px'
+                                              : '36px'
+                                          }
+                                          border={
+                                            citiesListType === 'Grid' &&
+                                            config.deviceType !== 'Mobile'
+                                              ? '1px solid #fff'
+                                              : 'none'
+                                          }
+                                          bgColor={
+                                            citiesListType === 'Grid' &&
+                                            config.deviceType !== 'Mobile'
+                                              ? 'var(--saki-default-color)'
+                                              : 'transparent'
+                                          }
+                                          bgHoverColor={
+                                            citiesListType === 'Grid' &&
+                                            config.deviceType !== 'Mobile'
+                                              ? 'var(--saki-default-hover-color)'
+                                              : 'transparent'
+                                          }
+                                          bgActiveColor={
+                                            citiesListType === 'Grid' &&
+                                            config.deviceType !== 'Mobile'
+                                              ? 'var(--saki-default-active-color)'
+                                              : 'transparent'
+                                          }
                                         >
                                           <SakiIcon
-                                            width="14px"
-                                            height="14px"
-                                            color="#666"
+                                            width={
+                                              citiesListType === 'Grid' &&
+                                              config.deviceType !== 'Mobile'
+                                                ? '12px'
+                                                : '14px'
+                                            }
+                                            height={
+                                              citiesListType === 'Grid' &&
+                                              config.deviceType !== 'Mobile'
+                                                ? '12px'
+                                                : '14px'
+                                            }
+                                            color={
+                                              citiesListType === 'Grid' &&
+                                              config.deviceType !== 'Mobile'
+                                                ? '#fff'
+                                                : '#666'
+                                            }
                                             type="Trash"
                                           ></SakiIcon>
                                         </SakiButton>
@@ -2441,7 +2805,7 @@ const WeatherPage = () => {
                                             ''
                                           )}
                                         </span>
-                                        <span>
+                                        <span className="text-two-elipsis">
                                           {v.cityInfo?.address
                                             .split('·')
                                             .filter((v, i) => i > 0)
@@ -2450,10 +2814,24 @@ const WeatherPage = () => {
                                       </div>
                                       <div className="c-i-right">
                                         <span>
-                                          {v?.weatherInfo?.current?.temperature}
-                                          ℃
+                                          {convertTemperature(
+                                            v?.weatherInfo?.current
+                                              ?.temperature || 0,
+                                            v?.weatherInfo?.current_units
+                                              ?.temperature_2m as any,
+                                            weather.weatherData.units
+                                              .temperature
+                                          )}
+                                          {
+                                            weather.weatherData.units
+                                              .temperature
+                                          }
                                         </span>
                                         <span>
+                                          {getWeatherIcon(
+                                            v?.weatherInfo?.current
+                                              ?.weatherCode || 0
+                                          ) + ' '}
                                           {v?.weatherInfo?.current?.weather}
                                         </span>
                                       </div>
@@ -2627,21 +3005,81 @@ const WeatherPage = () => {
                       </SakiRow>
                     </>
                   ) : getUpdateTime(cityItem) ? (
-                    <div className="wp-c-updateTime">
-                      {t('updatedTime', {
-                        ns: 'sakiuiWeather',
-                        time:
-                          formatDurationI18n(
-                            (new Date().getTime() - getUpdateTime(cityItem)) /
-                              1000,
-                            false
-                          ) ||
-                          0 +
-                            t('secondTime', {
+                    <SakiButton
+                      onTap={() => {
+                        if (
+                          (new Date().getTime() - getUpdateTime(cityItem)) /
+                            1000 <
+                          60
+                        ) {
+                          showSnackbar(
+                            t('refreshTimesTooManny', {
                               ns: 'prompt',
-                            }),
-                      })}
-                    </div>
+                              time:
+                                formatDurationI18n(
+                                  (new Date().getTime() -
+                                    getUpdateTime(cityItem)) /
+                                    1000,
+                                  false
+                                ) ||
+                                0 +
+                                  t('secondTime', {
+                                    ns: 'prompt',
+                                  }),
+                            })
+                          )
+                          return
+                        }
+
+                        alert({
+                          title: t('refreshWeather', {
+                            ns: 'prompt',
+                          }),
+                          content: t('refreshWeatherContent', {
+                            ns: 'prompt',
+                          }),
+                          cancelText: t('cancel', {
+                            ns: 'prompt',
+                          }),
+                          confirmText: t('update', {
+                            ns: 'prompt',
+                          }),
+                          onCancel() {},
+                          async onConfirm() {
+                            setLoadStatus('loaded')
+                            dispatch(
+                              weatherSlice.actions.setWeatherData({
+                                cities: cities.map((v, i) => {
+                                  return {
+                                    ...v,
+                                    updateCurTime:
+                                      i === curCityIndex ? 0 : v.updateCurTime,
+                                  }
+                                }),
+                              })
+                            )
+                          },
+                        }).open()
+                      }}
+                      border="none"
+                      bgColor={!fixedHeader ? 'rgba(0,0,0,0)' : 'rgba(0,0,0,0)'}
+                      bgHoverColor={
+                        !fixedHeader
+                          ? 'rgba(0,0,0,0.3)'
+                          : themeColors['--button-bg-hover-color']
+                      }
+                      bgActiveColor={
+                        !fixedHeader
+                          ? 'rgba(0,0,0,0.5)'
+                          : themeColors['--button-bg-active-color']
+                      }
+                    >
+                      <div className="wp-c-updateTime">
+                        <UpdateTimeComponent
+                          updatedTime={getUpdateTime(cityItem)}
+                        ></UpdateTimeComponent>
+                      </div>
+                    </SakiButton>
                   ) : (
                     ''
                   )}
@@ -2738,27 +3176,30 @@ const WeatherPage = () => {
                 <div className="wp-c-top">
                   <div className="wp-c-temp">
                     <div className="wp-data-temp">
+                      <span>{curInfo.curWeather.temperature}</span>
                       <span>
-                        {convertTemperature(
-                          weatherInfo?.current?.temperature,
-                          (weatherInfo?.current_units?.temperature_2m as any) ||
-                            '°C',
-                          weather.weatherData.units.temperature
-                        )}
-                      </span>
-                      <span>
-                        <span>{weather.weatherData.units.temperature}</span>
+                        <span
+                          onClick={() => {
+                            eventListener.dispatch(
+                              'OpenModal:WeatherUnitsModal',
+                              {
+                                pageTitle: t('unitModalPageTitle', {
+                                  ns: 'weatherPage',
+                                }),
+                              }
+                            )
+                          }}
+                        >
+                          {curInfo.curWeather.temperatureUnit}
+                        </span>
                         {/* <span>{weatherInfo?.current?.weather}</span> */}
                       </span>
                     </div>
                     <div className="wp-data-weather">
                       <span>
-                        {t(
-                          'weather' + (weatherInfo?.current?.weatherCode || 0),
-                          {
-                            ns: 'sakiuiWeather',
-                          }
-                        )}
+                        {t('weather' + (curInfo.curWeather.weatherCode || 0), {
+                          ns: 'sakiuiWeather',
+                        })}
                       </span>
                     </div>
 
@@ -2793,23 +3234,27 @@ const WeatherPage = () => {
                   </div>
                   <div className="wp-c-emoji">
                     <span>
-                      {getWeatherIcon(
-                        Number(weatherInfo?.current?.weatherCode),
-                        {
-                          dusk: isDusk,
-                          dawn: isDawn,
-                          night: isNight,
-                        }
-                      ) || ''}
+                      {getWeatherIcon(Number(curInfo.curWeather.weatherCode), {
+                        dusk: isDusk,
+                        dawn: isDawn,
+                        night: isNight,
+                      }) || ''}
                       {/* {openWeatherWMOToEmoji(ntextWcode)?.value || ''} */}
                     </span>
 
                     <span className="wp-c-e-weather">
-                      {t('weather' + (weatherInfo?.current?.weatherCode || 0), {
+                      {t('weather' + (curInfo.curWeather.weatherCode || 0), {
                         ns: 'sakiuiWeather',
                       })}
                     </span>
                   </div>
+                </div>
+                <div className="wp-c-center">
+                  {curInfo.curWeather.tip ? (
+                    <span className="wp-c-tip">{curInfo.curWeather.tip}</span>
+                  ) : (
+                    ''
+                  )}
                 </div>
                 <div className="wp-c-bottom">
                   {/* <div className="wp-c-b-left">
@@ -2825,13 +3270,8 @@ const WeatherPage = () => {
                             ns: 'sakiuiWeather',
                           }) +
                             ' ' +
-                            (convertTemperature(
-                              weatherInfo?.current?.apparentTemperature,
-                              (weatherInfo?.current_units
-                                .apparent_temperature as any) || '°C',
-                              weather.weatherData.units.temperature
-                            ) +
-                              weather.weatherData.units.temperature)}
+                            (curInfo.curWeather.apparentTemperature +
+                              curInfo.curWeather.temperatureUnit)}
                         </span>
                       </div>
                       {/* 
@@ -2874,9 +3314,8 @@ const WeatherPage = () => {
                             ns: 'sakiuiWeather',
                           }) +
                             ' ' +
-                            (weatherInfo?.current?.precipitationProbability +
-                              weatherInfo?.current_units
-                                ?.precipitation_probability)}
+                            (curInfo.curWeather.precipitationProbability +
+                              curInfo.curWeather.precipitationProbabilityUnit)}
                         </span>
                       </div>
                       <div
@@ -2891,13 +3330,8 @@ const WeatherPage = () => {
                             ns: 'sakiuiWeather',
                           }) +
                             ' ' +
-                            (convertPrecipitation(
-                              weatherInfo?.current?.temperature,
-                              (weatherInfo?.current_units
-                                ?.precipitation as any) || 'mm',
-                              weather.weatherData.units.precipitation
-                            ) +
-                              weather.weatherData.units.precipitation)}
+                            (curInfo.curWeather.precipitation +
+                              curInfo.curWeather.precipitationUnit)}
                         </span>
                       </div>
                       <div
@@ -3000,9 +3434,9 @@ const WeatherPage = () => {
                     weatherInfo.daily?.temperature_2m_min[i]
 
                   const maxTempWeatherCode =
-                    weatherInfo.daily.maxTempWeatherCodes[i]
+                    weatherInfo.daily?.maxTempWeatherCodes?.[i]
                   const minTempWeatherCode =
-                    weatherInfo.daily.minTempWeatherCodes[i]
+                    weatherInfo.daily?.minTempWeatherCodes?.[i]
 
                   return (
                     <div className="wp-t-item" key={i}>
@@ -3843,6 +4277,180 @@ const WeatherPage = () => {
           }}
           themeColor={themeColor}
         ></WeatherDetailModal>
+
+        {showContext.visible ? (
+          <SakiContextMenu
+            ref={
+              bindEvent(
+                {
+                  close: () => {
+                    setShowContext({
+                      x: 0,
+                      y: 0,
+                      label: '',
+                      visible: false,
+                    })
+                  },
+                  selectvalue: async (e) => {
+                    console.log('414', e.detail)
+                    if (e.detail.label === 'SortTo') {
+                      const activeIndex = Number(e.detail.values[1].label)
+                      console.log('activeIndex', activeIndex, e.detail)
+
+                      const tempCities = deepCopy(cities)
+                      let tempSort = 2
+                      tempCities[0].sort = 0
+
+                      let activeLatLng =
+                        tempCities[curCityIndex].lat +
+                        ':' +
+                        tempCities[curCityIndex].lng
+
+                      switch (e.detail.value) {
+                        case 'MoveToTop':
+                          tempCities[activeIndex].sort = 1
+                          tempSort = 2
+
+                          tempCities.forEach((v, i) => {
+                            if (!v.curPopsition && i !== activeIndex) {
+                              tempCities[i].sort = tempSort
+                              tempSort++
+                            }
+                          })
+
+                          break
+                        case 'MoveToBottom':
+                          tempCities[activeIndex].sort = tempCities.length + 1
+                          tempSort = 2
+
+                          tempCities.forEach((v, i) => {
+                            if (!v.curPopsition && i !== activeIndex) {
+                              tempCities[i].sort = tempSort
+                              tempSort++
+                            }
+                          })
+                          break
+                      }
+
+                      tempCities.sort((a, b) => {
+                        return a.sort - b.sort
+                      })
+
+                      tempCities.some((v, i) => {
+                        console.log(
+                          'tempCities',
+                          i,
+                          v.lat + ':' + v.lng,
+                          activeLatLng
+                        )
+                        if (v.lat + ':' + v.lng === activeLatLng) {
+                          setCurCityIndex(i)
+                          return true
+                        }
+                      })
+
+                      dispatch(
+                        weatherSlice.actions.setWeatherData({
+                          cities: tempCities,
+                        })
+                      )
+                      dispatch(
+                        methods.weather.syncData({
+                          data: {
+                            cities: tempCities,
+                          },
+                        })
+                      )
+
+                      return
+                    }
+
+                    if (e.detail.value === 'delete') {
+                      deleteCityItem(Number(e.detail.label))
+                    }
+                  },
+                },
+                (e) => {
+                  setContextMenuEl(e)
+                }
+              ) as any
+            }
+          >
+            <saki-context-menu-item
+              font-size="13px"
+              padding="12px 10px"
+              value="SortTo"
+            >
+              <div className="context-menu-item">
+                <saki-icon
+                  margin="2px 6px 0 0"
+                  width="18px"
+                  height="14px"
+                  type={'Sort'}
+                ></saki-icon>
+                <span>
+                  {t('sortTo', {
+                    ns: 'sakiuiPrompt',
+                  })}
+                </span>
+              </div>
+              <div slot="SubMenu">
+                <saki-context-menu label="SortTo">
+                  {[
+                    {
+                      icon: 'MoveTop',
+                      value: 'MoveToTop',
+                      text: t('moveToTop', {
+                        ns: 'sakiuiPrompt',
+                      }),
+                    },
+                    {
+                      icon: 'MoveBottom',
+                      value: 'MoveToBottom',
+                      text: t('moveToBottom', {
+                        ns: 'sakiuiPrompt',
+                      }),
+                    },
+                  ].map((v, i) => {
+                    return (
+                      <saki-context-menu-item
+                        key={i}
+                        font-size="13px"
+                        padding="12px 10px"
+                        value={v.value}
+                      >
+                        <div className="context-menu-item">
+                          <saki-icon
+                            margin="0 6px 0 0"
+                            type={v.icon}
+                          ></saki-icon>
+                          <span>{v.text}</span>
+                        </div>
+                      </saki-context-menu-item>
+                    )
+                  })}
+                </saki-context-menu>
+              </div>
+            </saki-context-menu-item>
+
+            <saki-context-menu-item
+              font-size="13px"
+              padding="12px 10px"
+              value="delete"
+            >
+              <div className="context-menu-item">
+                <saki-icon margin="0 6px 0 0" type="Trash"></saki-icon>
+                <span>
+                  {t('delete', {
+                    ns: 'prompt',
+                  })}
+                </span>
+              </div>
+            </saki-context-menu-item>
+          </SakiContextMenu>
+        ) : (
+          ''
+        )}
       </div>
     </>
   )
@@ -3868,8 +4476,8 @@ const WeatherDayForecastListItem = ({
 
   const temperature_2m_max = weatherInfo.daily?.temperature_2m_max[i]
   const temperature_2m_min = weatherInfo.daily?.temperature_2m_min[i]
-  const maxTempWeatherCode = weatherInfo.daily.maxTempWeatherCodes[i]
-  const minTempWeatherCode = weatherInfo.daily.minTempWeatherCodes[i]
+  const maxTempWeatherCode = weatherInfo.daily?.maxTempWeatherCodes?.[i]
+  const minTempWeatherCode = weatherInfo.daily?.minTempWeatherCodes?.[i]
   const wind_speed_10m = weatherInfo.daily.wind_speed_10m_max[i]
   const wind_direction_10m = weatherInfo.daily.wind_direction_10m_dominant[i]
 

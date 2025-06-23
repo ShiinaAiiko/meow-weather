@@ -12,6 +12,7 @@ import {
   languages,
   defaultLanguage,
   changeLanguage,
+  detectionLanguage,
 } from '../plugins/i18n/i18n'
 import { storage } from './storage'
 import { NEventListener, NRequest, SAaSS } from '@nyanyajs/utils'
@@ -219,22 +220,27 @@ export const configMethods = {
       // console.log('navigator.language', language, navigator.language)
       if (language === 'system') {
         const languages = ['zh-CN', 'zh-TW', 'en-US']
-        if (languages.indexOf(navigator.language) >= 0) {
-          changeLanguage(navigator.language as any)
-        } else {
-          switch (navigator.language.substring(0, 2)) {
-            case 'zh':
-              changeLanguage('zh-CN')
-              break
-            case 'en':
-              changeLanguage('en-US')
-              break
 
-            default:
-              changeLanguage('en-US')
-              break
-          }
-        }
+        const lang = detectionLanguage()
+
+        changeLanguage(lang as any)
+
+        // if (languages.indexOf(navigator.language) >= 0) {
+        //   changeLanguage(navigator.language as any)
+        // } else {
+        //   switch (navigator.language.substring(0, 2)) {
+        //     case 'zh':
+        //       changeLanguage('zh-CN')
+        //       break
+        //     case 'en':
+        //       changeLanguage('en-US')
+        //       break
+
+        //     default:
+        //       changeLanguage('en-US')
+        //       break
+        //   }
+        // }
       } else {
         changeLanguage(language)
       }

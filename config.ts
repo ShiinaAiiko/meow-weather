@@ -3,6 +3,9 @@ baselog.Info('Env:', process.env.CLIENT_ENV)
 let server = {
   url: '',
 }
+let saass = {
+  url: '',
+}
 let sakiui = {
   jsurl: '',
   esmjsurl: '',
@@ -24,6 +27,7 @@ let version = ''
 
 interface Config {
   server: typeof server
+  saass: typeof saass
   sakiui: typeof sakiui
   sakisso: typeof sakisso
   appListUrl: typeof appListUrl
@@ -37,16 +41,26 @@ try {
   // let configJson: Config = require('./config.test.json')
   if (configJson) {
     server = configJson.server
+    saass = configJson.saass
     sakiui = configJson.sakiui
     sakisso = configJson.sakisso
     meowApps = configJson.meowApps
     appListUrl = configJson.appListUrl
     webrtc = configJson.webrtc
     version = configJson.version
-    console.log("new version", version)
+    console.log('new version', version)
   }
 } catch (error) {
   console.error(error)
 }
-export { sakiui, appListUrl, meowApps, server, webrtc, sakisso, version }
-export default { sakiui, appListUrl, meowApps, server, webrtc, sakisso, version }
+export { saass, sakiui, appListUrl, meowApps, server, webrtc, sakisso, version }
+export default {
+  saass,
+  sakiui,
+  appListUrl,
+  meowApps,
+  server,
+  webrtc,
+  sakisso,
+  version,
+}

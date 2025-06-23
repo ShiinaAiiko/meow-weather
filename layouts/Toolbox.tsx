@@ -41,6 +41,7 @@ import { storage } from '../store/storage'
 import LoadingPage from '../components/LoadingPage'
 import NoSSR from '../components/NoSSR'
 import LoadModalsComponent from '../components/LoadModal'
+import { eventListener } from '../store/config'
 // import parserFunc from 'ua-parser-js'
 
 const keywords: string = Object.keys(resources)
@@ -211,6 +212,8 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
                   }
                   textColor={config.deviceType === 'Mobile' ? '#ccc' : '#000'}
                   onChangeLanguage={async (e) => {
+                    console.log('onChangeLanguage', e.detail)
+
                     localStorage.setItem('language', e.detail)
 
                     // router.locale = e.detail
@@ -236,6 +239,8 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
                       }
                     )
                     console.log('pathname', router, pathname)
+
+                    eventListener.dispatch('changeLanguage', e.detail)
 
                     router.replace(pathname || '/')
                   }}

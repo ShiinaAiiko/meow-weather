@@ -154,6 +154,8 @@ func (fc *WeatherController) GetWeatherFileUrls(c *gin.Context) {
 
 	// 2、获取参数
 	data := new(protos.GetWeatherFileUrls_Request)
+
+	log.Info("GetWeatherFileUrls", data)
 	var err error
 	if err = protos.DecodeBase64(c.GetString("data"), data); err != nil {
 		res.Error = err.Error()

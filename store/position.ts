@@ -27,16 +27,16 @@ let watchId = -1
 
 const getIpPosition = async (t: number) => {
   setTimeout(async () => {
-    const { position } = store.getState()
+    const { position, config } = store.getState()
 
     console.log('watchPosition getIpPosition', position)
-    if (position.position?.coords?.latitude) {
+    if (position.position?.timestamp) {
       return
     }
 
     const res = await R.request({
       method: 'GET',
-      url: 'https://tools.aiiko.club/api/v1/ip/details?ip=&language=zh-CN',
+      url: `https://tools.aiiko.club/api/v1/ip/details?ip=&language=${config.lang}`,
     })
 
     console.log('watchPosition getIpPosition', res?.data?.data)
@@ -103,25 +103,20 @@ export const positionMethods = {
         'watchPosition curCityIndex router?.query allowWatchPosition',
         location.search.includes('lat='),
         position,
-        !position.allowWatchPosition,
-        location.search.includes('lat=') && location.search.includes('lng=')
+        !position.allowWatchPosition
       )
-      if (
-        !position.allowWatchPosition ||
-        (location.search.includes('lat=') && location.search.includes('lng='))
-      ) {
+      if (!position.allowWatchPosition) {
         return
       }
       console.log('watchPosition position.position', position.position)
 
-      if (!position.position) {
+      getIpPosition(5000)
+      if (!position.position?.timestamp) {
         const curPosition = await storage.global.get('curPosition')
         console.log('watchPosition position.position', curPosition)
 
         if (curPosition?.timestamp && curPosition?.accuracy) {
           thunkAPI.dispatch(positionSlice.actions.setPosition(curPosition))
-        } else {
-          getIpPosition(5000)
         }
       }
 

@@ -5,74 +5,24 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import { Router, useRouter } from 'next/router'
 import path, { format } from 'path'
-import store, {
-  RootState,
-  AppDispatch,
-  layoutSlice,
-  useAppDispatch,
-  methods,
-  apiSlice,
-  positionSlice,
-} from '../store'
+import store, { RootState, AppDispatch } from '../store'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { bindEvent, snackbar, progressBar, alert } from '@saki-ui/core'
-import {
-  Debounce,
-  deepCopy,
-  NRequest,
-  QueueLoop,
-  WebWorker,
-} from '@nyanyajs/utils'
-import {
-  getRegExp,
-  copyText,
-  getRandomPassword,
-  formatTime,
-  formatDuration,
-  formatDurationI18n,
-  getDistance,
-  formatDistance,
-} from '../plugins/methods'
+
 import {
   getDetailedPressureLevel,
-  getCelestialTimesRange,
-  getSunTimes,
-  getMoonTimes,
   getVisibilityAlert,
   defaultWeatherInfo,
-  formatAirQuality,
-  getAqiDescription,
-  getWindDirectionText,
   getUVInfo,
-  createSunMoonChart,
-  getWindForceLevel,
   formatWeatherDate,
-  createWeatherChart,
-  WeatherData,
-  WeatherAQIData,
-  createAQIChart,
-  CelestialTimes,
-  calculateTwilightTimes,
-  createValDataChart,
   PressureLevel,
-  WeatherSyncData,
   createWindChart,
   createPrecipitationDataChart,
   createDewPointChart,
-  weatherSlice,
-  getMaxMinTempWeatherCodes,
-  getThemeColors,
-  getWeatherVideoUrl,
   getWeatherIcon,
-  ntextWcode,
   getWarningColor,
 } from '../store/weather'
-import {
-  changeLanguage,
-  languages,
-  defaultLanguage,
-} from '../plugins/i18n/i18n'
 import moment, { unix } from 'moment'
 import { configSlice, eventListener, R } from '../store/config'
 import { server } from '../config'
@@ -92,16 +42,7 @@ import {
   SakiRow,
   SakiTitle,
 } from '../components/saki-ui-react/components'
-import * as Astronomy from 'astronomy-engine'
-import { storage } from '../store/storage'
 import NoSSR from '../components/NoSSR'
-import dynamic from 'next/dynamic'
-import { CityInfo } from '../plugins/http/api/geo'
-import { httpApi } from '../plugins/http/api'
-import {
-  networkConnectionStatusDetection,
-  networkConnectionStatusDetectionEnum,
-} from '@nyanyajs/utils/dist/common/common'
 import { covertTimeFormat } from '@nyanyajs/utils/dist/units/time'
 import {
   convertPrecipitation,
@@ -214,7 +155,6 @@ const WeatherDetailModal = ({
     const curHour = moment().format('YYYY-MM-DD HH:00')
     weatherInfo.hourly.time.some((v, i) => {
       const vHour = moment(v).format('YYYY-MM-DD HH:00')
-      // console.log('getWeather curIndex', curHour, vHour)
       if (curHour === vHour) {
         curIndex = i
         return true
@@ -222,6 +162,7 @@ const WeatherDetailModal = ({
 
       return curIndex
     })
+    console.log('getWeatherData  curIndex', curIndex)
 
     let surfacePressure: {
       val: number
@@ -290,7 +231,7 @@ const WeatherDetailModal = ({
                 wind_direction_10m: weatherInfo.hourly.wind_direction_10m[i],
                 wind_speed_10m: weatherInfo.hourly.wind_speed_10m[i],
                 wind_gusts_10m: weatherInfo.hourly.wind_gusts_10m[i],
-                unit: weather.weatherData.units.windSpeed,
+                unit: weatherInfo.hourlyUnits.wind_speed_10m,
                 date:
                   curHour === vHour
                     ? t('now', {
@@ -679,31 +620,35 @@ const WeatherDetailModal = ({
               })}
             >
               <div slot="right">
-                <SakiButton
-                  onTap={() => {
-                    eventListener.dispatch('OpenModal:WeatherUnitsModal', {
-                      pageTitle: t('unitModalPageTitle', {
-                        ns: 'weatherPage',
-                      }),
-                    })
-                  }}
-                  type="CircleIconGrayHover"
-                  border="none"
-                  margin={'0 10px 0 0'}
-                >
-                  <SakiRow justifyContent="flex-start" alignItems="center">
-                    <saki-icon
-                      width="20px"
-                      color="#666"
-                      type="Settings"
-                    ></saki-icon>
-                    {/* <span>
+                {type !== 'warning' ? (
+                  <SakiButton
+                    onTap={() => {
+                      eventListener.dispatch('OpenModal:WeatherUnitsModal', {
+                        pageTitle: t('unitModalPageTitle', {
+                          ns: 'weatherPage',
+                        }),
+                      })
+                    }}
+                    type="CircleIconGrayHover"
+                    border="none"
+                    margin={'0 10px 0 0'}
+                  >
+                    <SakiRow justifyContent="flex-start" alignItems="center">
+                      <saki-icon
+                        width="20px"
+                        color="#666"
+                        type="Settings"
+                      ></saki-icon>
+                      {/* <span>
                       {t('unit', {
                         ns: 'weatherPage',
                       })}
                     </span> */}
-                  </SakiRow>
-                </SakiButton>
+                    </SakiRow>
+                  </SakiButton>
+                ) : (
+                  ''
+                )}
               </div>
             </SakiModalHeader>
           </div>
