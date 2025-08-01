@@ -2907,15 +2907,15 @@ export function createWeatherChart(options: WeatherChartOptions) {
     const width = config.width - margin.left - margin.right
     const height = config.height - margin.top - margin.bottom
 
-    const data = config?.data || []
+    const data = config?.data?.filter((v) => typeof v.high === 'number') || []
 
-    // console.log(
-    //   'getWeather createWeatherChart',
-    //   config.weatherInfo,
-    //   data,
-    //   width,
-    //   config
-    // )
+    console.log(
+      'getWeather createWeatherChart',
+      config.weatherInfo,
+      data,
+      width,
+      config
+    )
 
     // 选择或创建容器
     const container =

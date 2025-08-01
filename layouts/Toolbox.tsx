@@ -42,6 +42,8 @@ import LoadingPage from '../components/LoadingPage'
 import NoSSR from '../components/NoSSR'
 import LoadModalsComponent from '../components/LoadModal'
 import { eventListener } from '../store/config'
+import { bindEvent } from '@saki-ui/core'
+import { sakisso } from '../config'
 // import parserFunc from 'ua-parser-js'
 
 const keywords: string = Object.keys(resources)
@@ -91,6 +93,7 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
   const router = useRouter()
   const config = useSelector((state: RootState) => state.config)
   const layout = useSelector((state: RootState) => state.layout)
+  const user = useSelector((state: RootState) => state.user)
 
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
 
@@ -311,6 +314,26 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
                   ])
                 }}
               ></SakiInit>
+              {user.isInit && !user.isLogin ? (
+                <saki-sso-init
+                  ref={bindEvent({
+                    login: (e: any) => {
+                      console.log('saki-sso-init login', e)
+                      store.dispatch(
+                        userSlice.actions.login({
+                          token: e.detail.token,
+                          deviceId: e.detail.deviceId,
+                          userInfo: e.detail.userInfo,
+                        })
+                      )
+                      // e?.target?.loggedIn()
+                    },
+                  })}
+                  url={sakisso.clientUrl}
+                ></saki-sso-init>
+              ) : (
+                ''
+              )}
               <SakiI18n
                 onMounted={async (e) => {
                   console.log('SakiI18n', e.target)
