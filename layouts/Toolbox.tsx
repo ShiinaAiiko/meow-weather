@@ -127,8 +127,8 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
           router?.query?.header === 'false'
             ? false
             : router?.query?.header === 'true'
-            ? true
-            : layout.header
+              ? true
+              : layout.header
         )
       )
     }
@@ -204,7 +204,10 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
               style={{
                 overflow: !config.connectionStatus.sakiuiI18n ? 'hidden' : '',
               }}
-              className="tb-main-wrap"
+              className={
+                'tb-main-wrap ' +
+                (['/weatherMap']?.includes(basePathname) ? '' : 'fullPage')
+              }
             >
               {children}
 
@@ -258,6 +261,12 @@ const ToolboxLayout = ({ children, pageProps }: any): JSX.Element => {
                   app-title={t('appTitle', {
                     ns: 'common',
                   })}
+                  padding={'0 10px 0 0'}
+                  margin={
+                    ['/weatherMap']?.includes(basePathname)
+                      ? '0px'
+                      : '0 0 10px 0'
+                  }
                   github
                   github-link="https://github.com/ShiinaAiiko/nyanya-toolbox"
                   github-text="Github"

@@ -37,10 +37,13 @@ import {
   showSnackbar,
 } from '../../plugins/methods'
 import {
-  getDetailedPressureLevel,
   getCelestialTimesRange,
   getSunTimes,
   getMoonTimes,
+  CelestialTimes,
+} from '../../plugins/celestialTimes'
+import {
+  getDetailedPressureLevel,
   getVisibilityAlert,
   defaultWeatherInfo,
   formatAirQuality,
@@ -54,7 +57,6 @@ import {
   WeatherData,
   WeatherAQIData,
   createAQIChart,
-  CelestialTimes,
   calculateTwilightTimes,
   createValDataChart,
   PressureLevel,
@@ -91,7 +93,7 @@ import {
 } from '../../plugins/i18n/i18n'
 import moment, { unix } from 'moment'
 import { configSlice, eventListener, R } from '../../store/config'
-import { server } from '../../config'
+import { server, toolsServer } from '../../config'
 // import { openWeatherWMOToEmoji } from '@akaguny/open-meteo-wmo-to-emoji'
 // import { WeatherCodes } from '@openmeteo/sdk';
 import {
@@ -268,14 +270,16 @@ const WeatherPage = () => {
       })
     )
 
-    const isCustomLatlng =
-      location.search.includes('lat=') && location.search.includes('lng=')
-
-    dispatch(weatherSlice.actions.setAllowSyncCloudData(!isCustomLatlng))
+    eventListener.on('CallbackModal:WeatherMapModal', (v) => {
+      console.log('WeatherMapModal', v)
+      viewCity({
+        lat: v.lat,
+        lon: v.lng,
+        display_name: v.city,
+      } as any)
+    })
 
     dispatch(methods.weather.init())
-
-    dispatch(configSlice.actions.setSsoAccount(!isCustomLatlng))
 
     dispatch(layoutSlice.actions.setLayoutHeader(true))
 
@@ -389,6 +393,17 @@ const WeatherPage = () => {
     }
   }, [])
 
+  useEffect(() => {
+    const isCustomLatlng =
+      location.search.includes('lat=') &&
+      location.search.includes('lng=') &&
+      !location.search.includes('weatherMap=')
+
+    dispatch(weatherSlice.actions.setAllowSyncCloudData(!isCustomLatlng))
+
+    dispatch(configSlice.actions.setSsoAccount(!isCustomLatlng))
+  }, [router])
+
   console.log('updatetime parent')
 
   const { themeColor, themeColors } = useMemo(() => {
@@ -481,6 +496,7 @@ const WeatherPage = () => {
           default: false,
           sort: 0,
           lang: config.lang,
+          isAdded: true,
         })
       }
       tempCities.sort((a, b) => {
@@ -777,7 +793,7 @@ const WeatherPage = () => {
       'lightning_potential',
     ].join(
       ','
-    )}&forecast_minutely_15=12&past_minutely_15=0&forecast_days=16&past_days=1&timezone=${
+    )}&forecast_minutely_15=12&past_minutely_15=0&forecast_days=15&past_days=1&timezone=${
       localTimezone.current
     }`
 
@@ -795,7 +811,7 @@ const WeatherPage = () => {
       url: connectionStatusOpenMeteo
         ? url
         : `${
-            server.url
+            toolsServer.url
           }/api/v1/net/httpProxy?method=GET&url=${encodeURIComponent(url)}`,
     })
 
@@ -804,7 +820,7 @@ const WeatherPage = () => {
       data = res?.data
     }
     console.log(
-      'getCityInfo  getWeather res',
+      'getCityInfo  getWeather1 res',
       connectionStatusOpenMeteo,
       res.data
     )
@@ -913,7 +929,7 @@ const WeatherPage = () => {
       url: connectionStatusOpenMeteo
         ? url
         : `${
-            server.url
+            toolsServer.url
           }/api/v1/net/httpProxy?method=GET&url=${encodeURIComponent(url)}`,
     })
 
@@ -975,17 +991,17 @@ const WeatherPage = () => {
       'carbon_monoxide',
       'european_aqi',
       'us_aqi',
-    ].join(',')}&daily=${[
-      'pm2_5',
-      'pm10',
-      'nitrogen_dioxide',
-      'sulphur_dioxide',
-      'ozone',
-      'carbon_monoxide',
-      'european_aqi',
-      'us_aqi',
     ].join(',')}&forecast_days=7&past_days=1&timezone=${localTimezone.current}`
-
+    // &daily=${[
+    //       'pm2_5',
+    //       'pm10',
+    //       'nitrogen_dioxide',
+    //       'sulphur_dioxide',
+    //       'ozone',
+    //       'carbon_monoxide',
+    //       'european_aqi',
+    //       'us_aqi',
+    //     ].join(',')}
     const connectionAirQualityAPI = await networkConnectionStatusDetection(
       networkConnectionStatusDetectionEnum.airQualityAPI
     )
@@ -994,7 +1010,7 @@ const WeatherPage = () => {
       url: connectionAirQualityAPI
         ? url
         : `${
-            server.url
+            toolsServer.url
           }/api/v1/net/httpProxy?method=GET&url=${encodeURIComponent(url)}`,
     })
 
@@ -1025,8 +1041,8 @@ const WeatherPage = () => {
       config.lang === 'zh-CN'
         ? 'zh'
         : config.lang === 'zh-TW'
-        ? 'zh-hant'
-        : 'en'
+          ? 'zh-hant'
+          : 'en'
     }&key=4984df9138e04b67a3cb104a96ae0384`
 
     const res = await R.request({
@@ -1055,8 +1071,8 @@ const WeatherPage = () => {
       config.lang === 'zh-CN'
         ? 'zh'
         : config.lang === 'zh-TW'
-        ? 'zh-hant'
-        : 'en'
+          ? 'zh-hant'
+          : 'en'
     }&key=4984df9138e04b67a3cb104a96ae0384`
 
     const res = await R.request({
@@ -1314,23 +1330,25 @@ const WeatherPage = () => {
       },
     }).open()
   }
-  const addCity = (result: NominatimResult) => {
+  const viewCity = (result: NominatimResult) => {
     console.log('addCity result', deepCopy(cities), result)
     if (result) {
       let tempIndex = -1
-      let tempCities = cities.map((v, i) => {
-        if (v.lat === Number(result.lat) && v.lng === Number(result.lon)) {
-          tempIndex = i
-          return {
-            ...v,
-            displayName: result.display_name,
-            lat: Number(result.lat),
-            lng: Number(result.lon),
-            lang: config.lang,
+      let tempCities = cities
+        .filter((v) => v.isAdded)
+        .map((v, i) => {
+          if (v.lat === Number(result.lat) && v.lng === Number(result.lon)) {
+            tempIndex = i
+            return {
+              ...v,
+              displayName: result.display_name,
+              lat: Number(result.lat),
+              lng: Number(result.lon),
+              lang: config.lang,
+            }
           }
-        }
-        return v
-      })
+          return v
+        })
 
       if (tempIndex < 0) {
         tempCities.push({
@@ -1343,6 +1361,7 @@ const WeatherPage = () => {
           default: false,
           sort: tempCities.length + 1,
           lang: config.lang,
+          isAdded: false,
         })
       }
 
@@ -1357,15 +1376,50 @@ const WeatherPage = () => {
           cities: tempCities,
         })
       )
-      dispatch(
-        methods.weather.syncData({
-          data: {
-            cities: tempCities,
-          },
-        })
-      )
+      // dispatch(
+      //   methods.weather.syncData({
+      //     data: {
+      //       cities: tempCities,
+      //     },
+      //   })
+      // )
+      setCurCityIndex(tempCities.length - 1)
       setOpenAddCityPage(false)
+      setOpenCityDropdown(false)
     }
+  }
+
+  const addity = (curI: number) => {
+    let tempCities = cities
+      .map((v, i) => {
+        if (i === curI) {
+          return {
+            ...v,
+            isAdded: true,
+          }
+        }
+        return v
+      })
+      .filter((v) => v.isAdded)
+
+    dispatch(
+      weatherSlice.actions.setWeatherData({
+        cities: tempCities,
+      })
+    )
+    dispatch(
+      methods.weather.syncData({
+        data: {
+          cities: tempCities,
+        },
+      })
+    )
+
+    showSnackbar(
+      t('addCitySuccess', {
+        ns: 'prompt',
+      })
+    )
   }
 
   function convertHourlyToDaily(
@@ -1824,7 +1878,7 @@ const WeatherPage = () => {
         return curIndex
       })
 
-      console.log('getWeather curIndex', curIndex)
+      console.log('getWeather1 curIndex', curIndex)
 
       // console.log('weatherInfo.daily.time', weatherInfo.daily)
 
@@ -2279,6 +2333,12 @@ const WeatherPage = () => {
           href="https://cdn.jsdelivr.net/npm/qweather-icons@1.7.0/font/qweather-icons.css"
           rel="stylesheet"
         ></link>
+
+        <link rel="stylesheet" href="/css/leaflet.css" crossOrigin="" />
+        <script src="/js/leaflet.js" crossOrigin=""></script>
+        <script src="/js/leaflet-polycolor.min.js"></script>
+        <script src="/js/TileLayer.ColorScale.js" crossOrigin=""></script>
+
         {/* <script src="https://d3js.org/d3.v7.min.js"></script> */}
       </Head>
       <div
@@ -2390,6 +2450,7 @@ const WeatherPage = () => {
                         ) : (
                           ''
                         )}
+
                         <span className="wp-h-l-city text-elipsis">
                           {getDisplayName(cityItem)}
                         </span>
@@ -2484,7 +2545,7 @@ const WeatherPage = () => {
                                       width="16px"
                                       height="16px"
                                       color="#666"
-                                      type="Add"
+                                      type="Magnifier"
                                     ></saki-icon>
                                   </SakiButton>
                                 ) : (
@@ -2642,203 +2703,207 @@ const WeatherPage = () => {
                             <div
                               className={`cities-list ${config.deviceType} ${citiesListType} scrollBarDefault`}
                             >
-                              {cities.map((v, i) => {
-                                const distance = getDistance(
-                                  v.lat,
-                                  v.lng,
-                                  position?.position?.coords.latitude || 0,
-                                  position?.position?.coords.longitude || 0
-                                )
-                                return (
-                                  <div
-                                    ref={
-                                      bindEvent({
-                                        click: async (e: any) => {
-                                          dispatch(
-                                            weatherSlice.actions.setWeatherData(
-                                              {
-                                                cities: cities.map((sv, si) => {
-                                                  return {
-                                                    ...sv,
-                                                    default: si === i,
-                                                  }
-                                                }),
-                                              }
+                              {cities
+                                .filter((v) => v.isAdded)
+                                .map((v, i) => {
+                                  const distance = getDistance(
+                                    v.lat,
+                                    v.lng,
+                                    position?.position?.coords.latitude || 0,
+                                    position?.position?.coords.longitude || 0
+                                  )
+                                  return (
+                                    <div
+                                      ref={
+                                        bindEvent({
+                                          click: async (e: any) => {
+                                            dispatch(
+                                              weatherSlice.actions.setWeatherData(
+                                                {
+                                                  cities: cities.map(
+                                                    (sv, si) => {
+                                                      return {
+                                                        ...sv,
+                                                        default: si === i,
+                                                      }
+                                                    }
+                                                  ),
+                                                }
+                                              )
                                             )
-                                          )
 
-                                          setCurCityIndex(i)
-                                          await storage.global.set(
-                                            'curCityIndex',
-                                            v.lat + ';' + v.lng
-                                          )
+                                            setCurCityIndex(i)
+                                            await storage.global.set(
+                                              'curCityIndex',
+                                              v.lat + ';' + v.lng
+                                            )
 
-                                          setOpenCityDropdown(false)
-                                        },
+                                            setOpenCityDropdown(false)
+                                          },
 
-                                        contextmenu: (e: any) => {
-                                          console.log(e)
-                                          e.preventDefault()
-                                          if (!v.curPopsition) {
-                                            setShowContext({
-                                              x: e?.pageX,
-                                              y: e?.pageY,
-                                              label: i.toString(),
-                                              visible: true,
-                                            })
-                                          }
-                                        },
-                                      }) as any
-                                    }
-                                    className={
-                                      'cities-item ' +
-                                      (curCityIndex === i ? 'active' : '')
-                                    }
-                                    key={i}
-                                  >
-                                    {openEditCity && !v.curPopsition ? (
-                                      <div
-                                        className={
-                                          'c-i-icon ' +
-                                          (citiesListType === 'Grid' &&
-                                          config.deviceType !== 'Mobile'
-                                            ? 'fixed'
-                                            : '')
-                                        }
-                                      >
-                                        <SakiButton
-                                          onTap={() => {
-                                            deleteCityItem(i)
-                                          }}
-                                          type="CircleIconGrayHover"
-                                          margin={
-                                            citiesListType === 'Grid' &&
+                                          contextmenu: (e: any) => {
+                                            console.log(e)
+                                            e.preventDefault()
+                                            if (!v.curPopsition) {
+                                              setShowContext({
+                                                x: e?.pageX,
+                                                y: e?.pageY,
+                                                label: i.toString(),
+                                                visible: true,
+                                              })
+                                            }
+                                          },
+                                        }) as any
+                                      }
+                                      className={
+                                        'cities-item ' +
+                                        (curCityIndex === i ? 'active' : '')
+                                      }
+                                      key={i}
+                                    >
+                                      {openEditCity && !v.curPopsition ? (
+                                        <div
+                                          className={
+                                            'c-i-icon ' +
+                                            (citiesListType === 'Grid' &&
                                             config.deviceType !== 'Mobile'
-                                              ? '0 0px 0 0'
-                                              : '0 8px 0 0'
-                                          }
-                                          width={
-                                            citiesListType === 'Grid' &&
-                                            config.deviceType !== 'Mobile'
-                                              ? '24px'
-                                              : '36px'
-                                          }
-                                          height={
-                                            citiesListType === 'Grid' &&
-                                            config.deviceType !== 'Mobile'
-                                              ? '24px'
-                                              : '36px'
-                                          }
-                                          border={
-                                            citiesListType === 'Grid' &&
-                                            config.deviceType !== 'Mobile'
-                                              ? '1px solid #fff'
-                                              : 'none'
-                                          }
-                                          bgColor={
-                                            citiesListType === 'Grid' &&
-                                            config.deviceType !== 'Mobile'
-                                              ? 'var(--saki-default-color)'
-                                              : 'transparent'
-                                          }
-                                          bgHoverColor={
-                                            citiesListType === 'Grid' &&
-                                            config.deviceType !== 'Mobile'
-                                              ? 'var(--saki-default-hover-color)'
-                                              : 'transparent'
-                                          }
-                                          bgActiveColor={
-                                            citiesListType === 'Grid' &&
-                                            config.deviceType !== 'Mobile'
-                                              ? 'var(--saki-default-active-color)'
-                                              : 'transparent'
+                                              ? 'fixed'
+                                              : '')
                                           }
                                         >
-                                          <SakiIcon
+                                          <SakiButton
+                                            onTap={() => {
+                                              deleteCityItem(i)
+                                            }}
+                                            type="CircleIconGrayHover"
+                                            margin={
+                                              citiesListType === 'Grid' &&
+                                              config.deviceType !== 'Mobile'
+                                                ? '0 0px 0 0'
+                                                : '0 8px 0 0'
+                                            }
                                             width={
                                               citiesListType === 'Grid' &&
                                               config.deviceType !== 'Mobile'
-                                                ? '12px'
-                                                : '14px'
+                                                ? '24px'
+                                                : '36px'
                                             }
                                             height={
                                               citiesListType === 'Grid' &&
                                               config.deviceType !== 'Mobile'
-                                                ? '12px'
-                                                : '14px'
+                                                ? '24px'
+                                                : '36px'
                                             }
-                                            color={
+                                            border={
                                               citiesListType === 'Grid' &&
                                               config.deviceType !== 'Mobile'
-                                                ? '#fff'
-                                                : '#666'
+                                                ? '1px solid #fff'
+                                                : 'none'
                                             }
-                                            type="Trash"
-                                          ></SakiIcon>
-                                        </SakiButton>
-                                      </div>
-                                    ) : (
-                                      ''
-                                    )}
+                                            bgColor={
+                                              citiesListType === 'Grid' &&
+                                              config.deviceType !== 'Mobile'
+                                                ? 'var(--saki-default-color)'
+                                                : 'transparent'
+                                            }
+                                            bgHoverColor={
+                                              citiesListType === 'Grid' &&
+                                              config.deviceType !== 'Mobile'
+                                                ? 'var(--saki-default-hover-color)'
+                                                : 'transparent'
+                                            }
+                                            bgActiveColor={
+                                              citiesListType === 'Grid' &&
+                                              config.deviceType !== 'Mobile'
+                                                ? 'var(--saki-default-active-color)'
+                                                : 'transparent'
+                                            }
+                                          >
+                                            <SakiIcon
+                                              width={
+                                                citiesListType === 'Grid' &&
+                                                config.deviceType !== 'Mobile'
+                                                  ? '12px'
+                                                  : '14px'
+                                              }
+                                              height={
+                                                citiesListType === 'Grid' &&
+                                                config.deviceType !== 'Mobile'
+                                                  ? '12px'
+                                                  : '14px'
+                                              }
+                                              color={
+                                                citiesListType === 'Grid' &&
+                                                config.deviceType !== 'Mobile'
+                                                  ? '#fff'
+                                                  : '#666'
+                                              }
+                                              type="Trash"
+                                            ></SakiIcon>
+                                          </SakiButton>
+                                        </div>
+                                      ) : (
+                                        ''
+                                      )}
 
-                                    <div className="c-i-main">
-                                      <div className="c-i-left">
-                                        <span>
-                                          {v?.curPopsition ? (
-                                            <saki-icon
-                                              width="18px"
-                                              height="18px"
-                                              color="#999"
-                                              margin="0 2px 0 0"
-                                              type="PositionFill"
-                                            ></saki-icon>
-                                          ) : (
-                                            ''
-                                          )}
+                                      <div className="c-i-main">
+                                        <div className="c-i-left">
+                                          <span>
+                                            {v?.curPopsition ? (
+                                              <saki-icon
+                                                width="18px"
+                                                height="18px"
+                                                color="#999"
+                                                margin="0 2px 0 0"
+                                                type="PositionFill"
+                                              ></saki-icon>
+                                            ) : (
+                                              ''
+                                            )}
 
-                                          <span>{getDisplayName(v)}</span>
-                                          {distance ? (
-                                            <span className="distance">
-                                              {formatDistance(distance)}
-                                            </span>
-                                          ) : (
-                                            ''
-                                          )}
-                                        </span>
-                                        <span className="text-two-elipsis">
-                                          {v.cityInfo?.address
-                                            .split('·')
-                                            .filter((v, i) => i > 0)
-                                            .join('·')}
-                                        </span>
-                                      </div>
-                                      <div className="c-i-right">
-                                        <span>
-                                          {convertTemperature(
-                                            v?.weatherInfo?.current
-                                              ?.temperature || 0,
-                                            v?.weatherInfo?.current_units
-                                              ?.temperature_2m as any,
-                                            weather.weatherData.units
-                                              .temperature
-                                          )}
-                                          {
-                                            weather.weatherData.units
-                                              .temperature
-                                          }
-                                        </span>
-                                        <span>
-                                          {getWeatherIcon(
-                                            v?.weatherInfo?.current
-                                              ?.weatherCode || 0
-                                          ) + ' '}
-                                          {v?.weatherInfo?.current?.weather}
-                                        </span>
+                                            <span>{getDisplayName(v)}</span>
+                                            {distance ? (
+                                              <span className="distance">
+                                                {formatDistance(distance)}
+                                              </span>
+                                            ) : (
+                                              ''
+                                            )}
+                                          </span>
+                                          <span className="text-two-elipsis">
+                                            {v.cityInfo?.address
+                                              .split('·')
+                                              .filter((v, i) => i > 0)
+                                              .join('·')}
+                                          </span>
+                                        </div>
+                                        <div className="c-i-right">
+                                          <span>
+                                            {convertTemperature(
+                                              v?.weatherInfo?.current
+                                                ?.temperature || 0,
+                                              v?.weatherInfo?.current_units
+                                                ?.temperature_2m as any,
+                                              weather.weatherData.units
+                                                .temperature
+                                            )}
+                                            {
+                                              weather.weatherData.units
+                                                .temperature
+                                            }
+                                          </span>
+                                          <span>
+                                            {getWeatherIcon(
+                                              v?.weatherInfo?.current
+                                                ?.weatherCode || 0
+                                            ) + ' '}
+                                            {v?.weatherInfo?.current?.weather}
+                                          </span>
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                )
-                              })}
+                                  )
+                                })}
                             </div>
 
                             <saki-transition
@@ -2934,7 +2999,7 @@ const WeatherPage = () => {
                                         ref={
                                           bindEvent({
                                             click: () => {
-                                              addCity(v)
+                                              viewCity(v)
                                             },
                                           }) as any
                                         }
@@ -3079,6 +3144,38 @@ const WeatherPage = () => {
                           updatedTime={getUpdateTime(cityItem)}
                         ></UpdateTimeComponent>
                       </div>
+                    </SakiButton>
+                  ) : (
+                    ''
+                  )}
+                  {!cityItem?.isAdded && cityItem?.cityInfo?.address ? (
+                    <SakiButton
+                      onTap={() => {
+                        addity(curCityIndex)
+                      }}
+                      border="none"
+                      type="CircleIconGrayHover"
+                      bgColor={!fixedHeader ? 'rgba(0,0,0,0)' : 'rgba(0,0,0,0)'}
+                      bgHoverColor={
+                        !fixedHeader
+                          ? 'rgba(0,0,0,0.3)'
+                          : themeColors['--button-bg-hover-color']
+                      }
+                      margin="0 0 0 2px"
+                      bgActiveColor={
+                        !fixedHeader
+                          ? 'rgba(0,0,0,0.5)'
+                          : themeColors['--button-bg-active-color']
+                      }
+                    >
+                      <saki-icon
+                        width="22px"
+                        height="22px"
+                        color={
+                          !fixedHeader ? '#fff' : themeColors['--c3-color']
+                        }
+                        type="Star"
+                      ></saki-icon>
                     </SakiButton>
                   ) : (
                     ''
@@ -4474,12 +4571,13 @@ const WeatherDayForecastListItem = ({
   const lowTemp = weatherInfo.daily.temperature_2m_min[i]
   const weatherCode = weatherInfo.daily.weathercode[i]
 
-  const temperature_2m_max = weatherInfo.daily?.temperature_2m_max[i]
-  const temperature_2m_min = weatherInfo.daily?.temperature_2m_min[i]
-  const maxTempWeatherCode = weatherInfo.daily?.maxTempWeatherCodes?.[i]
-  const minTempWeatherCode = weatherInfo.daily?.minTempWeatherCodes?.[i]
-  const wind_speed_10m = weatherInfo.daily.wind_speed_10m_max[i]
-  const wind_direction_10m = weatherInfo.daily.wind_direction_10m_dominant[i]
+  const temperature_2m_max = weatherInfo.daily?.temperature_2m_max[i] || 0
+  const temperature_2m_min = weatherInfo.daily?.temperature_2m_min[i] || 0
+  const maxTempWeatherCode = weatherInfo.daily?.maxTempWeatherCodes?.[i] || 0
+  const minTempWeatherCode = weatherInfo.daily?.minTempWeatherCodes?.[i] || 0
+  const wind_speed_10m = weatherInfo.daily.wind_speed_10m_max[i] || 0
+  const wind_direction_10m =
+    weatherInfo.daily.wind_direction_10m_dominant[i] || 0
 
   let date = formatWeatherDate(time)
 
@@ -4562,6 +4660,8 @@ const SunMoonListItem = ({
   const { t, i18n } = useTranslation('weatherPage')
   let i = index
   let date = formatWeatherDate(times.date)
+
+  // console.log('times', times)
 
   return (
     <div className="SunMoonListItem">

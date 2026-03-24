@@ -8,6 +8,7 @@ import moment from 'moment'
 import { eventListener } from '../store/config'
 import { Debounce } from '@nyanyajs/utils'
 import WeatherUnitsModal from './WeatherUnitsModal'
+import WeatherMapModal from './WeatherMapModal'
 // import FindLocationComponent from './FindLocation'
 // import CreateCustomTripComponent from './CreateCustomTrip'
 // import VisitedCitiesModal from './VisitedCities'
@@ -48,6 +49,15 @@ export const LoadModalsComponent = () => {
         <WeatherUnitsModal
           visible={openModalType.includes('WeatherUnitsModal')}
         />
+      ),
+    },
+    {
+      type: 'WeatherMapModal',
+      name: t('pageTitle', {
+        ns: 'weatherMapPage',
+      }),
+      component: (
+        <WeatherMapModal visible={openModalType.includes('WeatherMapModal')} />
       ),
     },
   ]

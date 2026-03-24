@@ -6,11 +6,15 @@ import { RSA, AES, deepCopy } from '@nyanyajs/utils'
 import { NSocketIoClient, NRequest } from '@nyanyajs/utils'
 import { R } from '../../../store/config'
 import { RequestProtobuf, getUrl } from '.'
-import { server } from '../../../config'
+import { server, toolsServer } from '../../../config'
 import {
   networkConnectionStatusDetection,
   networkConnectionStatusDetectionEnum,
 } from '@nyanyajs/utils/dist/common/common'
+// import {
+//   networkConnectionStatusDetection,
+//   networkConnectionStatusDetectionEnum,
+// } from './common'
 // import { e2eeDecryption, e2eeEncryption } from '../common'
 
 const { ResponseDecode, ParamsEncode } = NRequest.protobuf
@@ -150,10 +154,10 @@ export const Geo = () => {
       const connectionOpenStreetMap = await networkConnectionStatusDetection(
         networkConnectionStatusDetectionEnum.openStreetMap
       )
-      // console.log(
-      //   'networkConnectionStatusDetection connectionOpenStreetMap',
-      //   connectionOpenStreetMap
-      // )
+      console.log(
+        'networkConnectionStatusDetection connectionOpenStreetMap',
+        connectionOpenStreetMap
+      )
       if (connectionOpenStreetMap) {
         const res = await R.request({
           method: 'GET',
@@ -166,6 +170,10 @@ export const Geo = () => {
         }
       }
 
+      // const url = `https://nominatim.openstreetmap.org/search?q=${keywords}&format=jsonv2&addressdetails=1&accept-language=${
+      //   lang || config.lang
+      // }`
+
       const res = await R.request({
         method: 'GET',
         url:
@@ -176,9 +184,25 @@ export const Geo = () => {
           `https://nominatim.aiiko.club/search?q=${keywords}&format=jsonv2&addressdetails=1&accept-language=${
             lang || config.lang
           }`,
+
+        // connectionOpenStreetMap
+        //   ? url
+        //   : `${
+        //       toolsServer.url
+        //     }/api/v1/net/httpProxy?method=GET&url=${encodeURIComponent(url)}`,
         // `https://tools.aiiko.club/api/v1/geocode/regeo?latitude=${lat}&longitude=${lon}&platform=Amap`
       })
-      return res.data
+      let data = res?.data?.data as any
+      if (connectionOpenStreetMap) {
+        data = res?.data
+      }
+      // console.log(
+      //   'getCityInfo  getWeather1 res',
+      //   connectionOpenStreetMap,
+      //   res.data
+      // )
+      // return data
+      return res?.data
     },
   }
 }

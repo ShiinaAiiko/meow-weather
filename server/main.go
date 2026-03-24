@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	log = nlog.New()
+   	log = nlog.New()
 )
 
 // 文件到期后根据时间进行删除 未做

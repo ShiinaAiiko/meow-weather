@@ -462,16 +462,16 @@ const WeatherDetailModal = ({
           const curHour = moment().format(timeFormat.h)
           const vHour = moment(v).format(timeFormat.h)
 
-          const visibilityAlert = getVisibilityAlert(
-            weatherInfo.hourly.visibility?.[i] || 0
+          let tempVisib = convertVisibility(
+            weatherInfo.hourly.visibility?.[i],
+            'm',
+            weather.weatherData.units.visibility
           )
+
+          const visibilityAlert = getVisibilityAlert(tempVisib || 0)
+          console.log('visibilityAlert', visibilityAlert, tempVisib)
           return {
-            val:
-              convertVisibility(
-                visibilityAlert.visibility,
-                'm',
-                weather.weatherData.units.visibility
-              ) + weather.weatherData.units.visibility,
+            val: tempVisib + weather.weatherData.units.visibility,
             level: visibilityAlert.level,
             color: visibilityAlert.color,
             weatherCode: weatherInfo.hourly.weathercode[i],

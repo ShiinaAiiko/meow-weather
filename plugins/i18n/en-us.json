@@ -59,6 +59,13 @@
     "startRainSnowTip": "{{minutesFromNow}} minutes from now, it will start to {{precipitationType}}.",
     "stopRainSnowTip": "{{minutesFromNow}} minutes from now, {{precipitationType}} will stop."
   },
+  "indexPage": {
+    "pageTitle": "Homepage"
+  },
+
+  "weatherMapPage": {
+    "pageTitle": "Weather Map"
+  },
   "prompt": {
     "next": "Next",
     "back": "Back",
@@ -148,6 +155,12 @@
 
     "refreshWeather": "Get the latest weather",
     "refreshWeatherContent": "Do you want to get the latest weather conditions immediately?",
-    "refreshTimesTooManny": "You just refreshed {{time}} ago, please try again later."
+    "refreshTimesTooManny": "You just refreshed {{time}} ago, please try again later.",
+
+    "addCitySuccess": "City added successfully",
+
+    "loading": "Loading",
+    "loadFailed": "Loading failed",
+    "openNewWindow": "Open in new window"
   }
 }

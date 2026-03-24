@@ -59,6 +59,12 @@
     "startRainSnowTip": "{{minutesFromNow}}分钟后将开始下{{precipitationType}}。",
     "stopRainSnowTip": "{{minutesFromNow}}分钟后{{precipitationType}}将停止。"
   },
+  "indexPage": {
+    "pageTitle": "首页"
+  },
+  "weatherMapPage": {
+    "pageTitle": "天气地图"
+  },
   "prompt": {
     "next": "下一步",
     "back": "返回",
@@ -151,6 +157,13 @@
 
     "refreshWeather": "获取最新天气",
     "refreshWeatherContent": "是否要立即获取最新天气实况呢？",
-    "refreshTimesTooManny": "您在{{time}}之前才刚刷新过，请过会再试哦"
+    "refreshTimesTooManny": "您在{{time}}之前才刚刷新过，请过会再试哦",
+
+    "addCitySuccess": "已添加到城市列表了",
+
+    "loading": "加载中",
+    "loadFaild": "加载失败",
+
+    "openNewWindow": "打开新窗口"
   }
 }

@@ -56,12 +56,12 @@ start() {
     -d $name
 
   echo "-> 整理文件资源"
-  docker cp $name:/build.tgz $DIR/build.tgz
+  docker cp $name:/build/meow-weather $DIR/meow-weather
   stop
 
   ./ssh.sh run
 
-  rm -rf $DIR/build.tgz
+  rm -rf $DIR/build/meow-weather
 }
 
 run() {

@@ -59,6 +59,12 @@
     "startRainSnowTip": "{{minutesFromNow}}分鐘後將開始下{{precipitationType}}。",
     "stopRainSnowTip": "{{minutesFromNow}}分鐘後{{precipitationType}}將停止。"
   },
+  "indexPage": {
+    "pageTitle": "首頁"
+  },
+  "weatherMapPage": {
+    "pageTitle": "天氣地圖"
+  },
   "prompt": {
     "next": "繼續",
     "back": "後退",
@@ -146,6 +152,13 @@
 
     "refreshWeather": "取得最新天氣",
     "refreshWeatherContent": "是否要立即取得最新天氣實況呢？",
-    "refreshTimesTooManny": "您在{{time}}之前才剛刷新過，請過會再試哦"
+    "refreshTimesTooManny": "您在{{time}}之前才剛刷新過，請過會再試哦",
+
+    "addCitySuccess": "已新增至城市清單了",
+
+    "loading": "載入中",
+    "loadFaild": "載入失敗",
+
+    "openNewWindow": "在新視窗中開啟"
   }
 }

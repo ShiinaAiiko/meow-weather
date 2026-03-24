@@ -21,13 +21,14 @@
     "nyanyajs:remove": "yarn remove @nyanyajs/utils --registry https://registry.npm.aiiko.club"
   },
   "dependencies": {
-    "@nyanyajs/utils": "^1.0.36",
+    "@nyanyajs/utils": "^1.0.40",
     "@reduxjs/toolkit": "^1.7.0",
     "@saki-ui/core": "1.0.2",
-    "astronomy-engine": "^2.1.19",
+    "astronomy-engine": "2.1.19",
     "axios": "^0.24.0",
     "blueimp-md5": "^2.19.0",
     "chart.js": "^4.4.0",
+    "coordtransform": "^2.1.2",
     "cross-env": "^7.0.3",
     "findme-js": "^1.1.0",
     "html2canvas": "^1.4.1",

@@ -1,0 +1,11 @@
+.weather-map-modal {
+  width: 100%;
+  height: 100%;
+  .wmm-header {
+    width: 100%;
+  }
+  .wmm-main {
+    width: 100%;
+    height: calc(100% - 56px);
+  }
+}

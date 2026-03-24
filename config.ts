@@ -3,6 +3,9 @@ baselog.Info('Env:', process.env.CLIENT_ENV)
 let server = {
   url: '',
 }
+let toolsServer = {
+  url: '',
+}
 let saass = {
   url: '',
 }
@@ -34,6 +37,7 @@ interface Config {
   meowApps: typeof meowApps
   webrtc: typeof webrtc
   version: typeof version
+  toolsServer: typeof toolsServer
 }
 
 try {
@@ -48,12 +52,23 @@ try {
     appListUrl = configJson.appListUrl
     webrtc = configJson.webrtc
     version = configJson.version
+    toolsServer = configJson.toolsServer
     console.log('new version', version)
   }
 } catch (error) {
   console.error(error)
 }
-export { saass, sakiui, appListUrl, meowApps, server, webrtc, sakisso, version }
+export {
+  saass,
+  sakiui,
+  appListUrl,
+  meowApps,
+  server,
+  webrtc,
+  sakisso,
+  version,
+  toolsServer,
+}
 export default {
   saass,
   sakiui,
@@ -63,4 +78,5 @@ export default {
   webrtc,
   sakisso,
   version,
+  toolsServer,
 }

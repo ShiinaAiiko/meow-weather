@@ -71,6 +71,7 @@ const HeaderComponent = ({
   const [localUsers, setLocalUsers] = useState([] as LocalUser[])
 
   const isDark = layout.headerColor === 'Dark'
+  let basePathname = router.pathname.replace('/[lang]', '')
   return (
     <saki-template-header
       border-bottom={isDark ? '1px solid rgba(0,0,0,0)' : ''}
@@ -149,48 +150,94 @@ const HeaderComponent = ({
         ) : (
           ''
         )}
-        {router.asPath.indexOf('moveCarQRC/detail') >= 0 ? (
-          <SakiButton
-            onTap={() => {
-              dispatch(layoutSlice.actions.setOpenStatisticsModal(true))
-            }}
-            type="Normal"
-            border="none"
-          >
-            <saki-icon color="#666" type="Statistics"></saki-icon>
-          </SakiButton>
-        ) : (
-          ''
-        )}
+
         {!layout.headerLoading.loading ? (
-          <SakiButton
-            onTap={() => {
-              const ns =
-                router.pathname
-                  .replace('/[lang]', '')
-                  .split('/')
-                  .filter((v) => v)?.[0] + 'Page'
-              console.log('pageTitle', router, ns)
-              copyText(`${t('pageTitle', { ns })}
+          <>
+            <SakiButton
+              onTap={() => {
+                // eventListener.dispatch('OpenModal:WeatherMapModal', {
+                //   pageTitle: t('pageTitle', {
+                //     ns: 'weatherMapPage',
+                //   }),
+                // })
+
+                window.open(
+                  (router.query.lang ? '/' + router.query.lang : '/') + ''
+                )
+              }}
+              bgColor={isDark ? 'rgba(0,0,0,0)' : ''}
+              type="Normal"
+              border="none"
+            >
+              <span
+                style={{
+                  color: isDark ? '#fff' : '#666',
+                }}
+              >
+                {t('pageTitle', {
+                  ns: 'indexPage',
+                })}
+              </span>
+            </SakiButton>
+            <SakiButton
+              onTap={() => {
+                console.log('basePathname', basePathname)
+                if (basePathname === '') {
+                  eventListener.dispatch('OpenModal:WeatherMapModal', {
+                    pageTitle: t('pageTitle', {
+                      ns: 'weatherMapPage',
+                    }),
+                  })
+                } else {
+                  window.open(
+                    (router.query.lang ? '/' + router.query.lang + '/' : '/') +
+                      'weatherMap'
+                  )
+                }
+              }}
+              bgColor={isDark ? 'rgba(0,0,0,0)' : ''}
+              type="Normal"
+              border="none"
+            >
+              <span
+                style={{
+                  color: isDark ? '#fff' : '#666',
+                }}
+              >
+                {t('pageTitle', {
+                  ns: 'weatherMapPage',
+                })}
+              </span>
+            </SakiButton>
+            <SakiButton
+              onTap={() => {
+                const ns =
+                  router.pathname
+                    .replace('/[lang]', '')
+                    .split('/')
+                    .filter((v) => v)?.[0] + 'Page'
+                console.log('pageTitle', router, ns)
+                copyText(`${t('pageTitle', { ns })}
 ${location.href}`)
-              showSnackbar(
-                t('copySuccessfully', {
-                  ns: 'prompt',
-                })
-              )
-            }}
-            bgColor={isDark ? 'rgba(0,0,0,0)' : ''}
-            type="CircleIconGrayHover"
-          >
-            <saki-icon
-              margin="0 6px 0 0"
-              width="16px"
-              height="16px"
-              color={isDark ? '#fff' : '#666'}
-              padding="0 0 0 5px"
-              type="ShareFill"
-            ></saki-icon>
-          </SakiButton>
+                showSnackbar(
+                  t('copySuccessfully', {
+                    ns: 'prompt',
+                  })
+                )
+              }}
+              bgColor={isDark ? 'rgba(0,0,0,0)' : ''}
+              type="CircleIconGrayHover"
+            >
+              <saki-icon
+                margin="0 6px 0 0"
+                width="16px"
+                height="16px"
+                color={isDark ? '#fff' : '#666'}
+                padding="0 0 0 5px"
+                type="ShareFill"
+              ></saki-icon>
+            </SakiButton>
+          </>
         ) : (
           ''
         )}

@@ -325,6 +325,10 @@
           }
         }
         .wp-h-right {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          flex: 1;
           .wp-c-updateTime {
             text-align: right;
             color: var(--c1-f-color);
@@ -455,8 +459,9 @@
                 &:nth-child(1) {
                   font-size: 88px;
                   margin: 0 6px 0 0;
-                  font-family: 'PingFang SC', 'Microsoft YaHei', Simsun,
-                    Helvetica, Arial, sans-serif;
+                  font-family:
+                    'PingFang SC', 'Microsoft YaHei', Simsun, Helvetica, Arial,
+                    sans-serif;
                 }
                 &:nth-child(2) {
                   display: flex;
@@ -1020,13 +1025,15 @@
 .wp-h-l-cities {
   padding: 6px 0 10px;
   position: relative;
+
   &.Grid {
     &.PC,
     &.Pad {
       // display: grid;
       // grid-template-columns: repeat(3, 1fr);
       // grid-template-rows: repeat(4, 1fr);
-      height: calc(var(--deviceWH-h) - 200px);
+      // height: calc(var(--deviceWH-h) - 200px);
+      min-height: 300px;
       max-height: 980px;
       .cities-list {
         gap: 10px 10px;
@@ -1054,9 +1061,16 @@
       }
     }
   }
-  @media screen and (max-width: 767px) {
-    width: var(--deviceWH-w);
-    height: calc(var(--deviceWH-h) * 1);
+  // @media screen and (max-width: 767px) {
+  //   width: var(--deviceWH-w);
+  //   height: calc(var(--deviceWH-h) * 1);
+  // }
+
+  &.List {
+    &.Mobile {
+      width: var(--deviceWH-w);
+      height: calc(var(--deviceWH-h) * 1);
+    }
   }
 
   .cities-header {
@@ -1092,7 +1106,7 @@
 
     @media screen and (max-width: 767px) {
       width: 100%;
-      max-height: calc(100% - 36px);
+      max-height: calc(var(--deviceWH-h) - 50px);
     }
 
     .cities-item {
@@ -1107,7 +1121,9 @@
       border-radius: 10px;
       cursor: default;
       border: 2px solid #f3f3f3;
-      transition: border 0.3s, background-color 0.3s;
+      transition:
+        border 0.3s,
+        background-color 0.3s;
       position: relative;
 
       &.active {
@@ -1193,7 +1209,9 @@
     background-color: #fff;
     padding: 6px 0 10px;
 
-    transition: opacity 0.3s, transform 0.3s;
+    transition:
+      opacity 0.3s,
+      transform 0.3s;
 
     display: flex;
     flex-direction: column;

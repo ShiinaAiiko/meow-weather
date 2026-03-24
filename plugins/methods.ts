@@ -289,3 +289,84 @@ export const formatDistance = (distance: number) => {
   }
   return Math.round((distance || 0) / 100) / 10 + ' km'
 }
+
+const coordtransform = require('coordtransform')
+const latlngCache: {
+  [url: string]: {
+    [latlng: string]: number[]
+  }
+} = {}
+
+// 转换坐标系
+export const getLatLng = (mapUrl: string, lat: number, lng: number) => {
+  let key = String(lat) + String(lng)
+
+  if (latlngCache[mapUrl]?.[key]) return latlngCache[mapUrl][key]
+
+  if (
+    mapUrl.indexOf('google.com') >= 0 ||
+    mapUrl.indexOf('autonavi.com') >= 0 ||
+    mapUrl.indexOf('geoq.cn') >= 0
+  ) {
+    const gcj02towgs84 = coordtransform.wgs84togcj02(lng, lat)
+    // console.log('gcj02towgs84', gcj02towgs84)
+
+    lng = gcj02towgs84[0]
+    lat = gcj02towgs84[1]
+  }
+  // if (
+  // 	location.pathname.indexOf('trackRoute') >= 0
+  // 		? config.trackRouteMapKey.indexOf('TianDiTu') >= 0 ||
+  // 		  config.trackRouteMapKey.indexOf('OpenStreetMap') >= 0
+  // 		: config.mapKey.indexOf('TianDiTu') >= 0 ||
+  // 		  config.mapKey.indexOf('OpenStreetMap') >= 0
+  // ) {
+  // 	const gcj02towgs84 = coordtransform.gcj02towgs84(lng, lat)
+  // 	// console.log('gcj02towgs84', gcj02towgs84)
+
+  // 	lng = gcj02towgs84[0]
+  // 	lat = gcj02towgs84[1]
+  // }
+  !latlngCache[mapUrl] && (latlngCache[mapUrl] = {})
+  latlngCache[mapUrl][key] = [lat, lng]
+
+  return [lat, lng]
+}
+
+export const getLatLngGcj02ToWgs84 = (
+  mapUrl: string,
+  lat: number,
+  lng: number
+) => {
+  let key = String(lat) + String(lng) + 'gcj02towgs84'
+
+  if (latlngCache[mapUrl]?.[key]) return latlngCache[mapUrl][key]
+
+  if (
+    mapUrl.indexOf('google.com') >= 0 ||
+    mapUrl.indexOf('autonavi.com') >= 0 ||
+    mapUrl.indexOf('geoq.cn') >= 0
+  ) {
+    const gcj02towgs84 = coordtransform.gcj02towgs84(lng, lat)
+
+    lng = gcj02towgs84[0]
+    lat = gcj02towgs84[1]
+  }
+  // if (
+  // 	location.pathname.indexOf('trackRoute') >= 0
+  // 		? config.trackRouteMapKey.indexOf('TianDiTu') >= 0 ||
+  // 		  config.trackRouteMapKey.indexOf('OpenStreetMap') >= 0
+  // 		: config.mapKey.indexOf('TianDiTu') >= 0 ||
+  // 		  config.mapKey.indexOf('OpenStreetMap') >= 0
+  // ) {
+  // 	const gcj02towgs84 = coordtransform.gcj02towgs84(lng, lat)
+  // 	// console.log('gcj02towgs84', gcj02towgs84)
+
+  // 	lng = gcj02towgs84[0]
+  // 	lat = gcj02towgs84[1]
+  // }
+  !latlngCache[mapUrl] && (latlngCache[mapUrl] = {})
+  latlngCache[mapUrl][key] = [lat, lng]
+
+  return [lat, lng]
+}

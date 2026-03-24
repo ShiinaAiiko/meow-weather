@@ -43,3 +43,4 @@ dump.rdb
 go.work*
 ssh*
 build.tgz
+/meow-weather
