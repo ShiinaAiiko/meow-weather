@@ -126,7 +126,10 @@ export const positionMethods = {
             thunkAPI.dispatch(positionSlice.actions.setPosition(pos))
           },
           (error) => {
-            if (error.code === 1) {
+            if (
+              error.code === 1 &&
+              !location.search.includes('sakiAppPortal=')
+            ) {
               snackbar({
                 message: '必须开启定位权限，请检查下是否开启定位权限',
                 autoHideDuration: 2000,

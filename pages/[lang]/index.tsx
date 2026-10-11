@@ -92,7 +92,12 @@ import {
   detectionLanguage,
 } from '../../plugins/i18n/i18n'
 import moment, { unix } from 'moment'
-import { configSlice, eventListener, R } from '../../store/config'
+import {
+  configSlice,
+  eventListener,
+  getStaticPath,
+  R,
+} from '../../store/config'
 import { server, toolsServer } from '../../config'
 // import { openWeatherWMOToEmoji } from '@akaguny/open-meteo-wmo-to-emoji'
 // import { WeatherCodes } from '@openmeteo/sdk';
@@ -429,14 +434,16 @@ const WeatherPage = () => {
 
       wAny?.sakiui?.appPortal?.setAppInfo?.({
         title: t('pageTitle'),
-        logoText: 'Weather',
+        // logoText: 'Weather',
+        logo: location.origin + '/icons/128x128.png',
         url: location.origin + '/weather',
       })
 
       wAny.loadSakiUI = () => {
         wAny?.sakiui?.appPortal?.setAppInfo?.({
           title: t('pageTitle'),
-          logoText: 'Weather',
+          // logoText: 'Weather',
+          logo: location.origin + '/icons/128x128.png',
           url: location.origin + '/weather',
         })
       }
@@ -1065,7 +1072,7 @@ const WeatherPage = () => {
     return wi
   }
   const get5m = async (lat: number, lng: number) => {
-    const url = `https://mc4y3j6emb.re.qweatherapi.com//v7/minutely/5m?location=${
+    const url = `https://mc4y3j6emb.re.qweatherapi.com/v7/minutely/5m?location=${
       lng + ',' + lat
     }&lang=${
       config.lang === 'zh-CN'
@@ -2328,16 +2335,23 @@ const WeatherPage = () => {
             })}
         </title>
         <meta name="description" content={t('subtitle')} />
-        <script src="/js/d3.v7.min.js"></script>
+        <script src={getStaticPath('/js/d3.v7.min.js')}></script>
         <link
           href="https://cdn.jsdelivr.net/npm/qweather-icons@1.7.0/font/qweather-icons.css"
           rel="stylesheet"
         ></link>
 
-        <link rel="stylesheet" href="/css/leaflet.css" crossOrigin="" />
-        <script src="/js/leaflet.js" crossOrigin=""></script>
-        <script src="/js/leaflet-polycolor.min.js"></script>
-        <script src="/js/TileLayer.ColorScale.js" crossOrigin=""></script>
+        <link
+          rel="stylesheet"
+          href={getStaticPath('/css/leaflet.css')}
+          crossOrigin=""
+        />
+        <script src={getStaticPath('/js/leaflet.js')} crossOrigin=""></script>
+        <script src={getStaticPath('/js/leaflet-polycolor.min.js')}></script>
+        <script
+          src={getStaticPath('/js/TileLayer.ColorScale.js')}
+          crossOrigin=""
+        ></script>
 
         {/* <script src="https://d3js.org/d3.v7.min.js"></script> */}
       </Head>

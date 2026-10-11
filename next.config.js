@@ -35,6 +35,10 @@ module.exports = withPWA({
         output: 'export',
       }
     : {}),
+  assetPrefix:
+    process.env.NODE_ENV === 'development'
+      ? '/'
+      : 'https://cdn-weather.aiiko.club/',
   trailingSlash: false,
   reactStrictMode: false,
   swcMinify: false,

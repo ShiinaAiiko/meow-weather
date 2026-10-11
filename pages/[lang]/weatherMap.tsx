@@ -96,7 +96,12 @@ import {
   t,
 } from '../../plugins/i18n/i18n'
 import moment, { unix } from 'moment'
-import { configSlice, eventListener, R } from '../../store/config'
+import {
+  configSlice,
+  eventListener,
+  getStaticPath,
+  R,
+} from '../../store/config'
 import { server, toolsServer } from '../../config'
 // import { openWeatherWMOToEmoji } from '@akaguny/open-meteo-wmo-to-emoji'
 // import { WeatherCodes } from '@openmeteo/sdk';
@@ -549,10 +554,17 @@ const WeatherMapPage = () => {
           rel="stylesheet"
         ></link>
 
-        <link rel="stylesheet" href="/css/leaflet.css" crossOrigin="" />
-        <script src="/js/leaflet.js" crossOrigin=""></script>
-        <script src="/js/leaflet-polycolor.min.js"></script>
-        <script src="/js/TileLayer.ColorScale.js" crossOrigin=""></script>
+        <link
+          rel="stylesheet"
+          href={getStaticPath('/css/leaflet.css')}
+          crossOrigin=""
+        />
+        <script src={getStaticPath('/js/leaflet.js')} crossOrigin=""></script>
+        <script src={getStaticPath('/js/leaflet-polycolor.min.js')}></script>
+        <script
+          src={getStaticPath('/js/TileLayer.ColorScale.js')}
+          crossOrigin=""
+        ></script>
 
         {/* <script src="https://d3js.org/d3.v7.min.js"></script> */}
       </Head>

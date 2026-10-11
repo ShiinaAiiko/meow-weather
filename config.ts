@@ -42,7 +42,7 @@ interface Config {
 
 try {
   let configJson: Config = require('./config.temp.json')
-  // let configJson: Config = require('./config.test.json')
+  // let configJson:  Config = require('./config.test.json')
   if (configJson) {
     server = configJson.server
     saass = configJson.saass

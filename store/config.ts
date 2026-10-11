@@ -22,6 +22,18 @@ import 'moment/locale/zh-tw'
 import axios from 'axios'
 import { appListUrl } from '../config'
 
+export const getStaticPath = (path: string) => {
+  if (process.env.NODE_ENV === 'development') {
+    return path
+  }
+
+  if (!path.includes('https://cdn-weather.aiiko.club')) {
+    path = `${'https://cdn-weather.aiiko.club'}${path}`
+  }
+
+  return path
+}
+
 export type DeviceType = 'Mobile' | 'Pad' | 'PC'
 export type LanguageType = Languages | 'system'
 export let deviceType: DeviceType | undefined
